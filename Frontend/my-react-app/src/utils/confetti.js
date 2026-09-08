@@ -1,0 +1,77 @@
+// Pure JS Royal Gold Particle Confetti Engine
+export function triggerGoldConfetti() {
+  if (typeof window === 'undefined') return;
+
+  const canvas = document.createElement('canvas');
+  canvas.style.position = 'fixed';
+  canvas.style.top = '0';
+  canvas.style.left = '0';
+  canvas.style.width = '100vw';
+  canvas.style.height = '100vh';
+  canvas.style.pointerEvents = 'none';
+  canvas.style.zIndex = '9999';
+  document.body.appendChild(canvas);
+
+  const ctx = canvas.getContext('2d');
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  canvas.width = width;
+  canvas.height = height;
+
+  const colors = ['#d4af37', '#f5df88', '#aa820a', '#ffffff', '#e6a817', '#ffd700'];
+  const particles = [];
+  const particleCount = 75;
+
+  for (let i = 0; i < particleCount; i++) {
+    particles.push({
+      x: width * 0.5 + (Math.random() - 0.5) * 200,
+      y: height * 0.45,
+      vx: (Math.random() - 0.5) * 14,
+      vy: Math.random() * -12 - 4,
+      size: Math.random() * 8 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 8,
+      alpha: 1,
+      gravity: 0.35,
+      drag: 0.98
+    });
+  }
+
+  let animationFrame;
+  function render() {
+    ctx.clearRect(0, 0, width, height);
+
+    let activeCount = 0;
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += p.gravity;
+      p.vx *= p.drag;
+      p.rotation += p.rotationSpeed;
+      p.alpha -= 0.009;
+
+      if (p.alpha > 0) {
+        activeCount++;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.7);
+        ctx.restore();
+      }
+    }
+
+    if (activeCount > 0) {
+      animationFrame = requestAnimationFrame(render);
+    } else {
+      cancelAnimationFrame(animationFrame);
+      if (document.body.contains(canvas)) {
+        document.body.removeChild(canvas);
+      }
+    }
+  }
+
+  render();
+}
