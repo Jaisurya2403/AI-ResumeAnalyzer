@@ -17,7 +17,8 @@ import java.time.LocalDateTime;
 public class Candidate {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "candidate_seq")
+    @SequenceGenerator(name = "candidate_seq", sequenceName = "CANDIDATE_SEQ", allocationSize = 1)
     private Long id;
 
     @Column(nullable = false, unique = true, length = 64)
@@ -31,7 +32,14 @@ public class Candidate {
 
     private String phone;
 
+    private String companyName;
+
     private String targetRole;
+
+    private LocalDateTime expiryDate;
+
+    @Builder.Default
+    private java.time.LocalDate batchDate = java.time.LocalDate.now();
 
     @Lob
     @Column(columnDefinition = "CLOB")

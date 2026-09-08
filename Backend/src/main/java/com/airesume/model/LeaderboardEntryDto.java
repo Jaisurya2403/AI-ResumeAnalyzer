@@ -22,6 +22,8 @@ public class LeaderboardEntryDto {
     private Double overallScore;
     private String status;
     private String resumeViewUrl;
+    private String companyName;
+    private LocalDateTime expiryDate;
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;
 }

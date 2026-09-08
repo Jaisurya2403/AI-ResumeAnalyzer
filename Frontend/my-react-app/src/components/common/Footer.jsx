@@ -6,13 +6,14 @@ export default function Footer() {
     <footer style={{
       borderTop: '1px solid rgba(212, 175, 55, 0.15)',
       background: 'rgba(5, 6, 9, 0.92)',
-      padding: '2.5rem 2rem 2rem',
+      padding: '2rem 2.5rem',
       marginTop: 'auto',
       color: 'var(--text-muted)',
-      fontSize: '0.85rem'
+      fontSize: '0.85rem',
+      width: '100%'
     }}>
       <div style={{
-        maxWidth: '1560px',
+        maxWidth: '100%',
         width: '100%',
         margin: '0 auto',
         display: 'flex',

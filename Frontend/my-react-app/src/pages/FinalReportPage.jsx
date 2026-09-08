@@ -3,12 +3,14 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Award, Sparkles, CheckCircle2, TrendingUp, Compass, Share2, Printer, RotateCcw, ArrowRight, ShieldCheck, ChevronRight } from 'lucide-react';
 import { triggerGoldConfetti } from '../utils/confetti';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { storageService } from '../services/storageService';
 import ScoreBadge from '../components/common/ScoreBadge';
 
 export default function FinalReportPage() {
   const { id } = useParams();
   const { state, dispatch } = useApp();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
@@ -42,7 +44,49 @@ export default function FinalReportPage() {
 
   const scores = state.roundScores || { round1: 80, round2: 85, round3: 80, round4: 88 };
   const role = state.jobRole || { title: "Full Stack Engineer", domain: "Software" };
-  const candidateName = state.resumeProfile?.candidateName || "Candidate";
+  const candidateName = user?.name || state.userName || state.resumeProfile?.candidateName || "Candidate";
+  const hasSyncedRef = React.useRef(false);
+
+  // Sync completed scores with backend Oracle DB
+  useEffect(() => {
+    if (hasSyncedRef.current) return;
+    hasSyncedRef.current = true;
+
+    const avgAssessment = Math.round(
+      ((scores.round1 ?? 80) + (scores.round2 ?? 85) + (scores.round3 ?? 80) + (scores.round4 ?? 88)) / 4
+    );
+    const atsScore = Math.round(
+      state.resumeProfile?.skills && state.resumeProfile.skills.length > 0
+        ? state.resumeProfile.skills.reduce((acc, s) => acc + (s.percent || 75), 0) / state.resumeProfile.skills.length
+        : 85
+    );
+    const overall = report.fitnessPercent || Math.round(0.4 * atsScore + 0.6 * avgAssessment);
+
+    const userEmail = user?.email || state.userEmail || state.resumeProfile?.email || 'candidate@evalai.com';
+    const activeCandidateId = state.candidateId || sessionStorage.getItem('eval_candidate_id') || null;
+    const activeCandidateToken = state.candidateToken || sessionStorage.getItem('eval_candidate_token') || null;
+
+    fetch('http://localhost:8085/api/resumes/save-evaluation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        candidateId: activeCandidateId,
+        token: activeCandidateToken,
+        name: candidateName,
+        email: userEmail,
+        targetRole: role.title || 'Full Stack Engineer',
+        companyName: role.company || 'Standard Corporate Track',
+        resumeScore: atsScore,
+        assessmentScore: avgAssessment,
+        overallScore: overall,
+        status: 'COMPLETED',
+        summary: report.executiveSummary
+      })
+    }).catch(err => console.warn('Could not update final evaluation in DB:', err));
+  }, []);
 
   const handlePrint = () => {
     window.print();

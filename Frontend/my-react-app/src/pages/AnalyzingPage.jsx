@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, CheckCircle2, Cpu, Github, Layers, FileCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { aiClient } from '../services/aiClient';
 import { githubClient } from '../services/githubClient';
 
 export default function AnalyzingPage() {
   const { state, dispatch } = useApp();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
 
   const [currentStage, setCurrentStage] = useState(1);
@@ -16,22 +18,70 @@ export default function AnalyzingPage() {
     { id: 3, title: "Querying Public GitHub Repository Telemetry", status: "pending", icon: Github },
     { id: 4, title: "Generating Baseline Competency Matrix", status: "pending", icon: Layers }
   ]);
-
   useEffect(() => {
-    let isMounted = true;
+    let cancelled = false;
 
     async function runAnalysis() {
       try {
         // Stage 1 -> 2
         await new Promise(r => setTimeout(r, 600));
-        if (!isMounted) return;
+        if (cancelled) return;
         setStages(prev => prev.map(s => s.id === 1 ? { ...s, status: 'done' } : (s.id === 2 ? { ...s, status: 'running' } : s)));
         setCurrentStage(2);
 
         // Call AI Parser
         const resumeProfile = await aiClient.parseResume(state.rawResumeText || "Candidate Fullstack Engineer");
-        if (!isMounted) return;
         dispatch({ type: 'SET_RESUME_PROFILE', payload: resumeProfile });
+
+        // Calculate ATS Score from parsed skills or profile
+        const atsScore = Math.round(
+          resumeProfile?.skills && resumeProfile.skills.length > 0
+            ? resumeProfile.skills.reduce((acc, s) => acc + (s.percent || 75), 0) / resumeProfile.skills.length
+            : 85
+        );
+
+        // Persist Candidate Evaluation to Oracle Database
+        const userEmail = user?.email || state.userEmail || resumeProfile?.email || 'candidate@evalai.com';
+        const userName = user?.name || state.userName || resumeProfile?.candidateName || 'Candidate';
+        const targetRole = state.jobRole?.title || 'Fullstack Software Engineer';
+        const companyName = state.jobRole?.company || 'Standard Corporate Track';
+        const existingCandId = state.candidateId || sessionStorage.getItem('eval_candidate_id') || null;
+
+        try {
+          const saveRes = await fetch('http://localhost:8085/api/resumes/save-evaluation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({
+              candidateId: existingCandId,
+              name: userName,
+              email: userEmail,
+              targetRole: targetRole,
+              companyName: companyName,
+              resumeScore: atsScore,
+              status: 'INVITED',
+              skills: (resumeProfile?.skills || []).map(s => s.name || s),
+              summary: resumeProfile?.summary || '',
+              pdfBase64: state.pdfBase64 || null,
+              pdfFileName: state.pdfFileName || null
+            })
+          });
+          if (saveRes.ok) {
+            const saveData = await saveRes.json();
+            if (saveData?.candidateId) {
+              sessionStorage.setItem('eval_candidate_id', String(saveData.candidateId));
+              if (saveData.token) {
+                sessionStorage.setItem('eval_candidate_token', saveData.token);
+              }
+              dispatch({ type: 'SET_CANDIDATE_ID', payload: saveData.candidateId });
+              dispatch({ type: 'SET_CANDIDATE_TOKEN', payload: saveData.token });
+            }
+          }
+        } catch (dbErr) {
+          console.warn('Evaluation persistence warning:', dbErr);
+        }
 
         // Stage 2 -> 3
         setStages(prev => prev.map(s => s.id === 2 ? { ...s, status: 'done' } : (s.id === 3 ? { ...s, status: 'running' } : s)));
@@ -40,42 +90,35 @@ export default function AnalyzingPage() {
         // Fetch GitHub
         if (resumeProfile?.links?.github) {
           const ghData = await githubClient.fetchUserData(resumeProfile.links.github);
-          if (ghData && isMounted) {
+          if (ghData) {
             dispatch({ type: 'SET_GITHUB_DATA', payload: ghData });
           }
         }
 
         await new Promise(r => setTimeout(r, 500));
-        if (!isMounted) return;
 
         // Stage 3 -> 4
         setStages(prev => prev.map(s => s.id === 3 ? { ...s, status: 'done' } : (s.id === 4 ? { ...s, status: 'running' } : s)));
         setCurrentStage(4);
 
         await new Promise(r => setTimeout(r, 700));
-        if (!isMounted) return;
         setStages(prev => prev.map(s => ({ ...s, status: 'done' })));
 
         // Navigate to results
         setTimeout(() => {
-          if (isMounted) {
-            navigate(`/results/${state.resultId || 'latest'}`);
-          }
+          navigate(`/results/${state.resultId || 'latest'}`);
         }, 400);
 
       } catch (err) {
         console.error("Analysis pipeline failed:", err);
-        // Fallback navigate
-        if (isMounted) {
-          navigate(`/results/${state.resultId || 'latest'}`);
-        }
+        navigate(`/results/${state.resultId || 'latest'}`);
       }
     }
 
     runAnalysis();
 
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
   }, []);
 

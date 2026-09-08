@@ -354,7 +354,7 @@ Return ONLY JSON:
     const extractedName = raw.split("\n")[0].replace(/[^a-zA-Z\s]/g, "").trim() || "Candidate";
 
     return {
-      candidateName: extractedName.length > 2 && extractedName.length < 35 ? extractedName : "Alexander Vance",
+      candidateName: extractedName.length > 2 && extractedName.length < 35 ? extractedName : "Candidate",
       skills: skillList,
       projects: [
         {
