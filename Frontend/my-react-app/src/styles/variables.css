@@ -1,0 +1,64 @@
+:root {
+  /* Obsidian & Onyx Black palette */
+  --bg-primary: #07080c;
+  --bg-secondary: #0c0f17;
+  --bg-card: rgba(16, 20, 31, 0.72);
+  --bg-card-hover: rgba(24, 30, 47, 0.88);
+  --bg-card-solid: #10141f;
+  --bg-glass: rgba(12, 15, 23, 0.65);
+  --bg-glass-heavy: rgba(8, 10, 15, 0.92);
+
+  /* Royal Imperial Gold palette */
+  --gold-primary: #d4af37;
+  --gold-light: #f5df88;
+  --gold-lighter: #fbf0b9;
+  --gold-dark: #aa820a;
+  --gold-darker: #775a05;
+  --gold-amber: #f59e0b;
+  
+  /* Metallic Gradients */
+  --grad-gold: linear-gradient(135deg, #d4af37 0%, #f9e79f 50%, #aa820a 100%);
+  --grad-gold-subtle: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(245, 223, 136, 0.04) 100%);
+  --grad-gold-card: linear-gradient(180deg, rgba(212, 175, 55, 0.08) 0%, rgba(12, 15, 23, 0.6) 100%);
+  --grad-gold-border: linear-gradient(135deg, rgba(212, 175, 55, 0.8) 0%, rgba(170, 130, 10, 0.2) 100%);
+  --grad-dark-mesh: radial-gradient(circle at 10% 20%, rgba(212, 175, 55, 0.08) 0%, transparent 45%),
+                    radial-gradient(circle at 90% 80%, rgba(170, 130, 10, 0.06) 0%, transparent 45%),
+                    #07080c;
+
+  /* Accent & Status Colors */
+  --accent-emerald: #10b981;
+  --accent-emerald-glow: rgba(16, 185, 129, 0.2);
+  --accent-crimson: #f43f5e;
+  --accent-crimson-glow: rgba(244, 63, 94, 0.2);
+  --accent-cyan: #06b6d4;
+  --accent-purple: #a855f7;
+
+  /* Typography & Text */
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-gold: #f3e5ab;
+  --text-gold-bright: #ffd700;
+
+  /* Borders & Glows */
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-gold: rgba(212, 175, 55, 0.28);
+  --border-gold-bright: rgba(212, 175, 55, 0.65);
+  --border-gold-glow: 0 0 16px rgba(212, 175, 55, 0.25);
+  
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(212, 175, 55, 0.05);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(212, 175, 55, 0.12);
+  --shadow-gold-heavy: 0 10px 30px rgba(212, 175, 55, 0.25);
+
+  /* Radii & Transitions */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  --transition-fast: 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
