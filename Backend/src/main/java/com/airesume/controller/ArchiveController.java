@@ -64,22 +64,24 @@ public class ArchiveController {
         for (Candidate c : candidates) {
             double resScore = c.getResumeScore() != null ? c.getResumeScore() : 0.0;
             Double assessScore = c.getAssessmentScore();
-            Double overall = (assessScore != null || c.getStatus() == com.airesume.model.CandidateStatus.COMPLETED || c.getStatus() == com.airesume.model.CandidateStatus.DISQUALIFIED)
-                    ? c.getOverallScore()
-                    : null;
+            Double overall = c.getOverallScore();
+            if (overall == null && assessScore != null) {
+                overall = Math.round((0.4 * resScore + 0.6 * assessScore) * 10.0) / 10.0;
+            }
 
             LeaderboardEntryDto entry = LeaderboardEntryDto.builder()
                     .rank(rank++)
                     .candidateId(c.getId())
-                    .name(c.getName())
+                    .name(c.getName() != null && !c.getName().isBlank() ? c.getName() : "Candidate")
                     .email(c.getEmail())
-                    .companyName(c.getCompanyName())
-                    .targetRole(c.getTargetRole())
+                    .companyName(c.getCompanyName() != null && !c.getCompanyName().isBlank() ? c.getCompanyName() : "Standard Corporate Track")
+                    .targetRole(c.getTargetRole() != null && !c.getTargetRole().isBlank() ? c.getTargetRole() : "Full Stack Engineer")
                     .expiryDate(c.getExpiryDate())
                     .resumeScore(resScore)
                     .assessmentScore(assessScore)
                     .overallScore(overall)
-                    .status(c.getStatus().name())
+                    .status(c.getStatus() != null ? c.getStatus().name() : "INVITED")
+                    .assessmentToken(c.getToken())
                     .resumeViewUrl("/api/resumes/" + c.getId() + "/pdf")
                     .createdAt(c.getCreatedAt())
                     .completedAt(c.getCompletedAt())

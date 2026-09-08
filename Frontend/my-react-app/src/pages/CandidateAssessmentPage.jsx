@@ -109,31 +109,35 @@ export default function CandidateAssessmentPage() {
       }
     }
 
-    loadCandidate();
-    setR1Questions(getRandomAptitudeQuestions(5));
+    loadCandidate().then(async (info) => {
+      const targetRole = info?.targetRole || "Full Stack Engineer";
+      const skills = (info?.skills || "React, Node.js, SQL").split(',').map(s => s.trim());
+      const aptList = await aiClient.generateAptitudeQuestions("Software", targetRole, skills);
+      setR1Questions(aptList || []);
+    });
   }, [token]);
 
   // Finish Round 4 -> Submit to Backend
   const handleFinalSubmit = useCallback(async (isViolationSubmit = false) => {
     setIsSubmitting(true);
-    let r4Score = 80;
-    const transcriptList = r4Questions.map((_, i) => r4Transcripts[i] || "Spoken response recorded.");
+    let r4Score = 0;
+    const transcriptList = r4Questions.map((_, i) => r4Transcripts[i] || "");
 
     if (!isViolationSubmit && r4Questions.length > 0) {
       try {
         const commResult = await aiClient.scoreCommunicationTranscripts(r4Questions, transcriptList);
-        r4Score = commResult?.overall || 84;
+        r4Score = typeof commResult?.overall === 'number' ? commResult.overall : 0;
       } catch (e) {
-        r4Score = 80;
+        r4Score = 0;
       }
     }
 
     const finalScores = isViolationSubmit
       ? { round1: 0, round2: 0, round3: 0, round4: 0 }
       : {
-          round1: scores.round1 ?? 80,
-          round2: scores.round2 ?? 80,
-          round3: scores.round3 ?? 80,
+          round1: scores.round1 ?? 0,
+          round2: scores.round2 ?? 0,
+          round3: scores.round3 ?? 0,
           round4: scores.round4 ?? r4Score
         };
 
@@ -259,7 +263,7 @@ export default function CandidateAssessmentPage() {
   const handleFinishRound3 = async () => {
     const answersArray = r3Questions.map((_, i) => r3Answers[i] || "");
     const practicalScoreResult = await aiClient.scorePracticalAnswers(r3Questions, answersArray);
-    const r3Score = practicalScoreResult?.averageScore || 80;
+    const r3Score = typeof practicalScoreResult?.averageScore === 'number' ? practicalScoreResult.averageScore : 0;
     setScores(prev => ({ ...prev, round3: r3Score }));
 
     setCurrentRound(4);

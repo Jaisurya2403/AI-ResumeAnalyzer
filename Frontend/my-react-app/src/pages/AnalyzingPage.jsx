@@ -29,8 +29,8 @@ export default function AnalyzingPage() {
         setStages(prev => prev.map(s => s.id === 1 ? { ...s, status: 'done' } : (s.id === 2 ? { ...s, status: 'running' } : s)));
         setCurrentStage(2);
 
-        // Call AI Parser
-        const resumeProfile = await aiClient.parseResume(state.rawResumeText || "Candidate Fullstack Engineer");
+        // Call AI Parser with Text & Image/PDF Base64
+        const resumeProfile = await aiClient.parseResume(state.rawResumeText || "Candidate Fullstack Engineer", state.pdfBase64);
         dispatch({ type: 'SET_RESUME_PROFILE', payload: resumeProfile });
 
         // Calculate ATS Score from parsed skills or profile
@@ -40,12 +40,11 @@ export default function AnalyzingPage() {
             : 85
         );
 
-        // Persist Candidate Evaluation to Oracle Database
-        const userEmail = user?.email || state.userEmail || resumeProfile?.email || 'candidate@evalai.com';
-        const userName = user?.name || state.userName || resumeProfile?.candidateName || 'Candidate';
+        // Persist Candidate Evaluation to Oracle Database as a fresh record
+        const userEmail = resumeProfile?.email || user?.email || state.userEmail || 'candidate@evalai.com';
+        const userName = resumeProfile?.candidateName || state.userName || 'Candidate';
         const targetRole = state.jobRole?.title || 'Fullstack Software Engineer';
         const companyName = state.jobRole?.company || 'Standard Corporate Track';
-        const existingCandId = state.candidateId || sessionStorage.getItem('eval_candidate_id') || null;
 
         try {
           const saveRes = await fetch('http://localhost:8085/api/resumes/save-evaluation', {
@@ -55,7 +54,7 @@ export default function AnalyzingPage() {
               ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             },
             body: JSON.stringify({
-              candidateId: existingCandId,
+              candidateId: null, // Always create a brand new distinct record for a new resume analysis
               name: userName,
               email: userEmail,
               targetRole: targetRole,

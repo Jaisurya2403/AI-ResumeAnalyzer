@@ -26,7 +26,7 @@ export default function ResultsPage() {
   }, [id, state.resumeProfile]);
 
   const profile = state.resumeProfile || {
-    candidateName: user?.name || state.userName || "Candidate",
+    candidateName: "Candidate",
     skills: [
       { name: "Frontend Development", percent: 85 },
       { name: "Backend Systems", percent: 88 },
@@ -43,7 +43,9 @@ export default function ResultsPage() {
     summary: "Dedicated software engineer with a strong foundation in core engineering, full-stack development, and scalable cloud solutions."
   };
 
-  const displayName = user?.name || profile.candidateName || "Candidate Profile";
+  const displayName = (profile.candidateName && profile.candidateName !== "Candidate")
+    ? profile.candidateName
+    : (profile.candidateName || state.resumeProfile?.candidateName || "Candidate Profile");
 
   return (
     <div style={{ maxWidth: '1240px', margin: '0 auto' }}>

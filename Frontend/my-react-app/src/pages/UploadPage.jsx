@@ -18,16 +18,11 @@ export default function UploadPage() {
   const processFile = async (file) => {
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setErrorMessage("Please upload a valid PDF resume document.");
-      return;
-    }
-
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      const extractedText = await pdfParser.extractTextFromPDF(file);
+      const extractedText = await pdfParser.extractText(file);
       
       const fileToBase64 = (f) => new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -55,8 +50,8 @@ export default function UploadPage() {
       });
       navigate('/analyzing');
     } catch (err) {
-      console.error("PDF Parsing error:", err);
-      setErrorMessage(err.message || "Failed to parse PDF resume. Please try another PDF resume file.");
+      console.error("Resume file extraction error:", err);
+      setErrorMessage(err.message || "Failed to extract readable content from this resume file. Please upload a PDF, Word DOCX, or Text file.");
       setIsLoading(false);
     }
   };
@@ -117,7 +112,7 @@ export default function UploadPage() {
         }}>
           <Sparkles size={16} color="var(--gold-light)" />
           <span style={{ fontSize: '0.82rem', color: 'var(--gold-light)', fontWeight: 600, letterSpacing: '0.05em' }}>
-            NEXT-GEN AI RESUME & INTERVIEW SIMULATION
+            QWEN AI MULTI-MODAL RESUME & INTERVIEW SIMULATION
           </span>
         </div>
 
@@ -128,8 +123,8 @@ export default function UploadPage() {
           lineHeight: '1.2',
           marginBottom: '1.25rem'
         }}>
-          Transform Your Resume Into a <br />
-          <span className="gold-text-gradient">Live AI Interview Evaluation</span>
+          Transform Any Resume Into a <br />
+          <span className="gold-text-gradient">Live Qwen AI Interview Evaluation</span>
         </h1>
 
         <p style={{
@@ -139,7 +134,7 @@ export default function UploadPage() {
           margin: '0 auto 2rem',
           lineHeight: '1.6'
         }}>
-          Upload your PDF resume to extract deep competency metrics, pull live GitHub telemetry, and experience an adaptive 4-round technical & voice interview simulator.
+          Upload your resume in any format (PDF, Word DOCX/DOC, TXT, or Image) to extract deep competency metrics, calibrate dynamic 4-round interview questions, and receive instant AI grading.
         </p>
       </div>
 
@@ -164,7 +159,7 @@ export default function UploadPage() {
         <input
           type="file"
           ref={fileInputRef}
-          accept="application/pdf"
+          accept=".pdf,.docx,.doc,.txt,.md,.rtf,.png,.jpg,.jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain,image/*"
           style={{ display: 'none' }}
           onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
         />
@@ -185,10 +180,10 @@ export default function UploadPage() {
         </div>
 
         <h3 className="font-royal" style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '0.5rem' }}>
-          {isLoading ? "Reading and Extracting PDF..." : "Drop your PDF Resume here"}
+          {isLoading ? "Reading and Extracting Resume Document..." : "Drop your Resume here (PDF, DOCX, DOC, TXT, Image)"}
         </h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-          Supports clean standard PDF resumes • Secure client-side parsing {!isAuthenticated && "• Sign-in required on upload"}
+          Supports all resume file formats • Powered by Qwen 2.5 on Groq {!isAuthenticated && "• Sign-in required on upload"}
         </p>
 
         <button
@@ -198,7 +193,7 @@ export default function UploadPage() {
           style={{ padding: '0.85rem 2rem', pointerEvents: 'none' }}
         >
           {isAuthenticated ? <FileText size={18} /> : <Lock size={18} />}
-          <span>{isLoading ? "Analyzing..." : (isAuthenticated ? "Browse PDF File" : "Sign In & Upload Resume")}</span>
+          <span>{isLoading ? "Analyzing Resume..." : (isAuthenticated ? "Browse Resume File" : "Sign In & Upload Resume")}</span>
         </button>
 
         {errorMessage && (
@@ -222,18 +217,18 @@ export default function UploadPage() {
         {[
           {
             icon: BarChart2,
-            title: "Dynamic Skill Extraction",
-            desc: "Parses technical proficiencies, project depth, and repository metrics into a visual radar profile."
+            title: "Dynamic Skill & Quality Extraction",
+            desc: "Parses technical proficiencies, project depth, and quality metrics using Qwen 2.5."
           },
           {
             icon: Cpu,
             title: "4-Round Multi-Modal AI",
-            desc: "Progresses from Aptitude to Domain MCQs, Adaptive Practical Scenarios, and Voice Communication."
+            desc: "Aptitude, Domain MCQs, Adaptive Practical Scenarios, and Voice Communication generated dynamically."
           },
           {
             icon: Sparkles,
-            title: "Live Speech-to-Text",
-            desc: "Real-time speech recognition evaluates verbal clarity, structure, and project articulation."
+            title: "Live Speech & Articulation",
+            desc: "Evaluates verbal clarity, structural coherence, and project explanation depth."
           },
           {
             icon: Shield,

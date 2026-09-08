@@ -29,23 +29,23 @@ export default function FinalReportPage() {
     triggerGoldConfetti();
   }, []);
 
-  const report = state.finalReport || {
-    fitnessPercent: 88,
-    executiveSummary: "Candidate exhibits exceptional technical architecture mastery, rapid problem-solving, and articulate verbal articulation. Strongly recommended for technical tracks.",
-    recommendations: [
-      { area: "Distributed System Failover & Idempotency", priority: "High", advice: "Deepen understanding of Raft distributed consensus, idempotency keys, and cross-region replication topologies." },
-      { area: "STAR Framework in Behavioral Questions", priority: "Medium", advice: "Frame scenario resolution crisply using Situation, Task, Action, and quantifiable Result metrics." }
-    ],
-    alternateRoles: [
-      { role: "Distributed Systems Architect", reason: "Strong grasp of concurrency control, Redis cluster scaling, and low-latency API throughput." },
-      { role: "Technical Lead / Engineering Manager", reason: "Articulate communication, team leadership awareness, and structured thought process." }
-    ]
-  };
-
-  const scores = state.roundScores || { round1: 80, round2: 85, round3: 80, round4: 88 };
+  const scores = state.roundScores || { round1: 0, round2: 0, round3: 0, round4: 0 };
   const role = state.jobRole || { title: "Full Stack Engineer", domain: "Software" };
-  const candidateName = user?.name || state.userName || state.resumeProfile?.candidateName || "Candidate";
+  const candidateName = state.resumeProfile?.candidateName || state.userName || "Candidate";
   const hasSyncedRef = React.useRef(false);
+
+  const calculatedFitness = Math.round(((scores.round1 ?? 0) * 0.15) + ((scores.round2 ?? 0) * 0.35) + ((scores.round3 ?? 0) * 0.30) + ((scores.round4 ?? 0) * 0.20));
+
+  const report = state.finalReport || {
+    fitnessPercent: calculatedFitness,
+    executiveSummary: (scores.round1 === 0 && scores.round2 === 0 && scores.round3 === 0 && scores.round4 === 0)
+      ? "Assessment completed with no answers submitted across all rounds. Overall fitness score is 0%."
+      : `Candidate completed the multi-round assessment with a score of ${calculatedFitness}%.`,
+    recommendations: [
+      { area: "Technical Architecture & System Design", priority: "High", advice: "Deepen understanding of distributed systems, concurrency control, and scalability patterns." }
+    ],
+    alternateRoles: []
+  };
 
   // Sync completed scores with backend Oracle DB
   useEffect(() => {
@@ -53,14 +53,14 @@ export default function FinalReportPage() {
     hasSyncedRef.current = true;
 
     const avgAssessment = Math.round(
-      ((scores.round1 ?? 80) + (scores.round2 ?? 85) + (scores.round3 ?? 80) + (scores.round4 ?? 88)) / 4
+      ((scores.round1 ?? 0) + (scores.round2 ?? 0) + (scores.round3 ?? 0) + (scores.round4 ?? 0)) / 4
     );
     const atsScore = Math.round(
       state.resumeProfile?.skills && state.resumeProfile.skills.length > 0
-        ? state.resumeProfile.skills.reduce((acc, s) => acc + (s.percent || 75), 0) / state.resumeProfile.skills.length
-        : 85
+        ? state.resumeProfile.skills.reduce((acc, s) => acc + (s.percent || 0), 0) / state.resumeProfile.skills.length
+        : 0
     );
-    const overall = report.fitnessPercent || Math.round(0.4 * atsScore + 0.6 * avgAssessment);
+    const overall = report.fitnessPercent !== undefined ? report.fitnessPercent : avgAssessment;
 
     const userEmail = user?.email || state.userEmail || state.resumeProfile?.email || 'candidate@evalai.com';
     const activeCandidateId = state.candidateId || sessionStorage.getItem('eval_candidate_id') || null;

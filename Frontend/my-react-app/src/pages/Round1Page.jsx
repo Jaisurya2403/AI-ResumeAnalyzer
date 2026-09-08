@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Cpu, Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { aiClient } from '../services/aiClient';
 import ProgressBar from '../components/common/ProgressBar';
 import QuestionCard from '../components/interview/QuestionCard';
 import McqOptions from '../components/interview/McqOptions';
-import { getRandomAptitudeQuestions } from '../data/aptitudeQuestions';
 
 export default function Round1Page() {
   const { state, dispatch } = useApp();
@@ -14,15 +14,42 @@ export default function Round1Page() {
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // { [index]: selectedOptionIndex }
+  const [isLoading, setIsLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState(300); // 5 mins total
 
+  const skills = state.resumeProfile?.skills || [];
+  const resumeQuality = state.resumeProfile?.resumeQuality || {};
+  const jobRole = state.jobRole || { title: "Full Stack Engineer", domain: "Software" };
+  const domain = state.jobRole?.domain || "Software";
+
   useEffect(() => {
-    const qList = getRandomAptitudeQuestions(5);
-    setQuestions(qList);
+    let isMounted = true;
+
+    async function loadAptitude() {
+      setIsLoading(true);
+      try {
+        const seed = String(state.candidateId || state.resultId || state.userName || Date.now());
+        const qList = await aiClient.generateAptitudeQuestions(domain, jobRole, skills, resumeQuality, seed);
+        if (isMounted) {
+          setQuestions(qList || []);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error("Failed to generate aptitude questions with Qwen AI:", err);
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadAptitude();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Timer countdown
   useEffect(() => {
+    if (isLoading) return;
     const timer = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev <= 1) {
@@ -34,7 +61,7 @@ export default function Round1Page() {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [questions, answers]);
+  }, [isLoading, questions, answers]);
 
   const currentQ = questions[currentIndex];
 
@@ -68,7 +95,7 @@ export default function Round1Page() {
       const isCorrect = selected === q.correctIndex;
       if (isCorrect) correctCount++;
       answeredArray.push({
-        questionId: q.id,
+        questionId: q.id || idx + 1,
         question: q.question,
         selectedOption: selected !== undefined ? q.options[selected] : "Unanswered",
         correctOption: q.options[q.correctIndex],
@@ -91,15 +118,43 @@ export default function Round1Page() {
     navigate('/interview/round2');
   };
 
-  if (!currentQ) {
+  if (isLoading) {
     return (
-      <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--text-muted)' }}>
-        Loading Aptitude Module...
+      <div style={{ maxWidth: '860px', margin: '3rem auto', textAlign: 'center' }}>
+        <ProgressBar currentRound={1} completedScores={state.roundScores} />
+        <div className="royal-glass-card solid-border" style={{ padding: '3.5rem 2rem', marginTop: '2rem' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: 'rgba(212, 175, 55, 0.15)',
+            border: '2px dashed var(--gold-light)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.5rem',
+            animation: 'spinSlow 10s linear infinite'
+          }}>
+            <Cpu size={28} color="var(--gold-light)" />
+          </div>
+          <h3 className="font-royal" style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '0.5rem' }}>
+            Qwen AI Calibrating Aptitude Module
+          </h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            Synthesizing logic & quantitative challenges calibrated to your resume profile...
+          </p>
+        </div>
       </div>
     );
   }
 
-  const answeredCount = Object.keys(answers).length;
+  if (!currentQ) {
+    return (
+      <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--text-muted)' }}>
+        No aptitude questions available.
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: '860px', margin: '0 auto' }}>
@@ -111,7 +166,7 @@ export default function Round1Page() {
         questionNumber={currentIndex + 1}
         totalQuestions={questions.length}
         questionText={currentQ.question}
-        tag={currentQ.category || "Aptitude"}
+        tag={currentQ.category || "Aptitude & Logic"}
         timeRemaining={timeRemaining}
       />
 

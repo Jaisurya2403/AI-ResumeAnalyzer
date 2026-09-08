@@ -4,7 +4,6 @@ import { AppProvider } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
-import ApiKeyModal from './components/common/ApiKeyModal';
 import AuthModal from './components/auth/AuthModal';
 
 // Pages
@@ -63,7 +62,6 @@ function AppLayout() {
   return (
     <div className="app-container">
       {!isAssessmentRoute && <Navbar />}
-      <ApiKeyModal />
       <AuthModal />
       <main className={isAssessmentRoute ? "main-content-assessment" : "main-content"}>
         <Routes>
