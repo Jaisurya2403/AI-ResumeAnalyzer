@@ -39,7 +39,11 @@ html, body {
 /* Typography Classes */
 .font-royal {
   font-family: 'Cinzel', serif;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+}
+
+.font-sans {
+  font-family: 'Outfit', -apple-system, sans-serif;
 }
 
 .font-mono {
@@ -47,10 +51,18 @@ html, body {
 }
 
 .gold-text-gradient {
-  background: var(--grad-gold);
+  background: linear-gradient(135deg, #fff2b2 0%, #ffd700 50%, #d4af37 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
   display: inline-block;
+  padding-right: 0.08em;
+  line-height: 1.35;
+}
+
+.gold-text-solid {
+  color: #ffd700;
+  text-shadow: 0 0 16px rgba(212, 175, 55, 0.4);
 }
 
 .gold-text-subtle {
@@ -302,10 +314,22 @@ html, body {
 
 .main-content {
   flex: 1;
-  max-width: 1280px;
-  width: 100%;
+  max-width: 1560px;
+  width: 95%;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 2rem 1rem 4rem;
+}
+
+.main-content-assessment {
+  flex: 1;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .grid-2 {

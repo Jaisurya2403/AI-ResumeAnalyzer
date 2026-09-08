@@ -1,0 +1,16 @@
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\AiResumeApplication.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\config\CorsConfig.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\controller\AssessmentController.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\controller\LeaderboardController.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\controller\ResumeBatchController.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\model\AssessmentSubmissionDto.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\model\Candidate.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\model\CandidateStatus.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\model\LeaderboardEntryDto.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\repository\CandidateRepository.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\service\AiScoringService.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\service\AssessmentEvaluationService.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\service\EmailNotificationService.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\service\LeaderboardPdfService.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\service\PdfExtractionService.java
+D:\KIT Hackathon\AI-ResumeAnalyzer\Backend\src\main\java\com\airesume\service\ZipResumeProcessorService.java

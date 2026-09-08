@@ -12,7 +12,8 @@ export default function Footer() {
       fontSize: '0.85rem'
     }}>
       <div style={{
-        maxWidth: '1280px',
+        maxWidth: '1560px',
+        width: '100%',
         margin: '0 auto',
         display: 'flex',
         flexWrap: 'wrap',
@@ -34,7 +35,7 @@ export default function Footer() {
             <Sparkles size={14} color="var(--gold-primary)" />
           </div>
           <div>
-            <span style={{ color: '#fff', fontWeight: 600 }}>AURA AI</span> • Intelligent Career Assessment & Multi-Round Voice Simulator
+            <span style={{ color: '#fff', fontWeight: 600 }}>EVAL AI</span> • Intelligent Career Assessment & Multi-Round Voice Simulator
           </div>
         </div>
 

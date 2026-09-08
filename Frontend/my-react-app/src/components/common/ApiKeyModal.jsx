@@ -13,9 +13,10 @@ export default function ApiKeyModal() {
   useEffect(() => {
     const config = storageService.getApiConfig();
     if (config) {
-      setProvider(config.provider || 'gemini');
+      const p = config.provider === 'openai' ? 'groq' : (config.provider || 'gemini');
+      setProvider(p);
       setApiKey(config.apiKey || '');
-      setModel(config.model || (config.provider === 'openai' ? 'gpt-4o-mini' : (config.provider === 'claude' ? 'claude-3-5-sonnet-20241022' : 'gemini-1.5-flash')));
+      setModel(config.model || (p === 'groq' ? 'qwen-2.5-32b' : (p === 'claude' ? 'claude-3-5-sonnet-20241022' : 'gemini-1.5-flash')));
     }
   }, [state.apiConfigModalOpen]);
 
@@ -38,7 +39,7 @@ export default function ApiKeyModal() {
   const handleProviderChange = (p) => {
     setProvider(p);
     if (p === 'gemini') setModel('gemini-1.5-flash');
-    if (p === 'openai') setModel('gpt-4o-mini');
+    if (p === 'groq') setModel('qwen-2.5-32b');
     if (p === 'claude') setModel('claude-3-5-sonnet-20241022');
   };
 
@@ -101,7 +102,7 @@ export default function ApiKeyModal() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem' }}>
             {[
               { id: 'gemini', label: 'Google Gemini', tag: 'Recommended' },
-              { id: 'openai', label: 'OpenAI GPT-4o', tag: 'Fast' },
+              { id: 'groq', label: 'Groq (Qwen)', tag: 'Ultra Fast' },
               { id: 'claude', label: 'Anthropic Claude', tag: 'Deep' }
             ].map(item => (
               <button
@@ -130,11 +131,11 @@ export default function ApiKeyModal() {
         <form onSubmit={handleSave}>
           <div style={{ marginBottom: '1.25rem' }}>
             <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-              API Key ({provider.toUpperCase()})
+              API Key ({provider === 'groq' ? 'GROQ QWEN' : provider.toUpperCase()})
             </label>
             <input
               type="password"
-              placeholder={apiKey ? "••••••••••••••••••••••••" : `Enter your ${provider} API key (leave empty for smart demo mode)`}
+              placeholder={apiKey ? "••••••••••••••••••••••••" : (provider === 'groq' ? "Enter your Groq API key (gsk_...)" : `Enter your ${provider} API key (leave empty for smart demo mode)`)}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               style={{
@@ -150,6 +151,25 @@ export default function ApiKeyModal() {
               }}
             />
           </div>
+
+          {/* Model info banner for Groq */}
+          {provider === 'groq' && (
+            <div style={{
+              background: 'rgba(212, 175, 55, 0.05)',
+              border: '1px solid rgba(212, 175, 55, 0.2)',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.65rem 0.85rem',
+              marginBottom: '1.25rem',
+              fontSize: '0.78rem',
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <Zap size={14} color="var(--gold-light)" />
+              <span>Target Model: <strong style={{ color: 'var(--gold-light)' }}>qwen-2.5-32b</strong> on Groq LPUs for near-instant inference speed.</span>
+            </div>
+          )}
 
           {/* Smart Demo Guarantee Banner */}
           <div style={{
