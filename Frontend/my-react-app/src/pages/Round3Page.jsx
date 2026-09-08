@@ -20,6 +20,8 @@ export default function Round3Page() {
   const difficulty = isAdvanced ? "advanced" : "foundational";
   const domain = state.jobRole?.domain || "Software";
   const jobRole = state.jobRole || { title: "Full Stack Engineer" };
+  const projects = state.resumeProfile?.projects || [];
+  const skills = state.resumeProfile?.skills || [];
 
   useEffect(() => {
     let isMounted = true;
@@ -27,13 +29,14 @@ export default function Round3Page() {
     async function loadPracticalQuestions() {
       setIsLoading(true);
       try {
-        const qList = await aiClient.generatePracticalQuestions(domain, jobRole, difficulty, round2Score);
+        const seed = String(state.candidateId || state.resultId || state.userName || Date.now());
+        const qList = await aiClient.generatePracticalQuestions(domain, jobRole, difficulty, round2Score, projects, skills, seed);
         if (isMounted) {
           setQuestions(qList || []);
           setIsLoading(false);
         }
       } catch (err) {
-        console.error("Failed to generate practical questions:", err);
+        console.error("Failed to generate practical questions with Qwen AI:", err);
         if (isMounted) setIsLoading(false);
       }
     }
@@ -72,9 +75,9 @@ export default function Round3Page() {
 
     try {
       const answersArray = questions.map((_, i) => answers[i] || "");
-      const scoringResult = await aiClient.scorePracticalAnswers(questions, answersArray);
+      const scoringResult = await aiClient.scorePracticalAnswers(questions, answersArray, state.resumeProfile, jobRole);
 
-      const score = typeof scoringResult.averageScore === 'number' ? scoringResult.averageScore : 80;
+      const score = typeof scoringResult.averageScore === 'number' ? scoringResult.averageScore : 0;
 
       dispatch({
         type: 'SET_ROUND_SCORE',
@@ -89,7 +92,8 @@ export default function Round3Page() {
             question: q.question,
             expectedApproach: q.expectedApproach,
             candidateAnswer: answers[i] || "No answer provided",
-            score: scoringResult.perQuestionScores?.[i] || score
+            score: scoringResult.perQuestionScores?.[i] ?? score,
+            feedback: scoringResult.feedback
           }))
         }
       });
@@ -97,9 +101,11 @@ export default function Round3Page() {
       navigate('/interview/round4');
     } catch (err) {
       console.error("Scoring error in Round 3:", err);
+      const answersArray = questions.map((_, i) => answers[i] || "");
+      const hasAny = answersArray.some(a => a && a.trim().length > 0);
       dispatch({
         type: 'SET_ROUND_SCORE',
-        payload: { round: 'round3', score: 80 }
+        payload: { round: 'round3', score: hasAny ? 50 : 0 }
       });
       navigate('/interview/round4');
     }
@@ -125,12 +131,12 @@ export default function Round3Page() {
             <Code size={28} color="var(--gold-light)" />
           </div>
           <h3 className="font-royal" style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '0.5rem' }}>
-            {isScoring ? "Evaluating Practical Solutions" : `Adapting Questions (${difficulty.toUpperCase()} Track)`}
+            {isScoring ? "Qwen AI Evaluating Practical Solutions" : `Qwen AI Adapting Questions (${difficulty.toUpperCase()} Track)`}
           </h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
             {isScoring
-              ? "AI Principal Architect evaluating edge-case resilience, architectural choices, and complexity..."
-              : `Round 2 score was ${round2Score}%. Dynamic branching calibrated to ${difficulty} difficulty.`}
+              ? "Qwen AI Principal Architect evaluating edge-case resilience, architectural choices, and complexity..."
+              : `Round 2 score was ${round2Score}%. Dynamic branching calibrated to ${difficulty} difficulty based on resume projects.`}
           </p>
         </div>
       </div>

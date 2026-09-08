@@ -22,6 +22,7 @@ export default function Round4Page() {
   ];
   const domain = state.jobRole?.domain || "Software";
   const jobRole = state.jobRole || { title: "Full Stack Engineer" };
+  const resumeQuality = state.resumeProfile?.resumeQuality || {};
 
   useEffect(() => {
     let isMounted = true;
@@ -29,13 +30,14 @@ export default function Round4Page() {
     async function loadVoiceQuestions() {
       setIsLoading(true);
       try {
-        const qList = await aiClient.generateCommunicationQuestions(domain, projects, jobRole);
+        const seed = String(state.candidateId || state.resultId || state.userName || Date.now());
+        const qList = await aiClient.generateCommunicationQuestions(domain, projects, jobRole, resumeQuality, seed);
         if (isMounted) {
           setQuestions(qList || []);
           setIsLoading(false);
         }
       } catch (err) {
-        console.error("Failed to generate communication questions:", err);
+        console.error("Failed to generate communication questions with Qwen AI:", err);
         if (isMounted) setIsLoading(false);
       }
     }
@@ -71,16 +73,16 @@ export default function Round4Page() {
     setIsFinalizing(true);
 
     try {
-      const transcriptList = questions.map((_, i) => transcripts[i] || "The candidate provided a structured explanation of the system trade-offs and team alignment.");
+      const transcriptList = questions.map((_, i) => transcripts[i] || "");
       
-      // 1. Score Round 4 Voice/Communication
-      const commScoreResult = await aiClient.scoreCommunicationTranscripts(questions, transcriptList);
-      const r4Score = typeof commScoreResult.overall === 'number' ? commScoreResult.overall : 84;
+      // 1. Score Round 4 Voice/Communication with AI
+      const commScoreResult = await aiClient.scoreCommunicationTranscripts(questions, transcriptList, state.resumeProfile, jobRole);
+      const r4Score = typeof commScoreResult.overall === 'number' ? commScoreResult.overall : 0;
 
       const finalRoundScores = {
-        round1: state.roundScores?.round1 ?? 80,
-        round2: state.roundScores?.round2 ?? 85,
-        round3: state.roundScores?.round3 ?? 80,
+        round1: state.roundScores?.round1 ?? 0,
+        round2: state.roundScores?.round2 ?? 0,
+        round3: state.roundScores?.round3 ?? 0,
         round4: r4Score
       };
 
@@ -95,13 +97,13 @@ export default function Round4Page() {
           round: 'round4',
           answers: questions.map((q, i) => ({
             question: q,
-            transcript: transcripts[i] || "Spoken response recorded",
+            transcript: transcripts[i] || "No voice response recorded",
             subScores: commScoreResult
           }))
         }
       });
 
-      // 2. Synthesize Final Report
+      // 2. Synthesize Final Report with AI
       const profile = state.resumeProfile || { candidateName: "Candidate", skills: [] };
       const report = await aiClient.generateFinalReport(finalRoundScores, profile, jobRole);
 
@@ -153,12 +155,12 @@ export default function Round4Page() {
             {isFinalizing ? <Award size={28} color="var(--gold-light)" /> : <Mic size={28} color="var(--gold-light)" />}
           </div>
           <h3 className="font-royal" style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '0.5rem' }}>
-            {isFinalizing ? "Synthesizing Executive Performance Report" : "Preparing Live Voice Prompts"}
+            {isFinalizing ? "Qwen AI Synthesizing Executive Performance Report" : "Qwen AI Preparing Live Voice Prompts"}
           </h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
             {isFinalizing
-              ? "Aggregating 4-round metrics, computing role-fitness percentage, and generating improvement roadmap..."
-              : "Calibrating speech recognition and project articulation questions..."}
+              ? "Qwen AI aggregating 4-round metrics, computing role-fitness percentage, and generating targeted improvement roadmap..."
+              : "Calibrating speech recognition and project articulation questions based on your resume..."}
           </p>
         </div>
       </div>

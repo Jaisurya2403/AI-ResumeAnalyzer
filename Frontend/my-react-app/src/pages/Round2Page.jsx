@@ -23,6 +23,8 @@ export default function Round2Page() {
     { name: "Database Design", percent: 80 }
   ];
   const jobRole = state.jobRole || { title: "Full Stack Engineer", domain: "Software" };
+  const resumeQuality = state.resumeProfile?.resumeQuality || {};
+  const projects = state.resumeProfile?.projects || [];
 
   useEffect(() => {
     let isMounted = true;
@@ -30,13 +32,14 @@ export default function Round2Page() {
     async function loadMCQs() {
       setIsLoading(true);
       try {
-        const mcqs = await aiClient.generateDomainMCQs(skills, jobRole);
+        const seed = String(state.candidateId || state.resultId || state.userName || Date.now());
+        const mcqs = await aiClient.generateDomainMCQs(skills, jobRole, resumeQuality, projects, seed);
         if (isMounted) {
           setQuestions(mcqs || []);
           setIsLoading(false);
         }
       } catch (err) {
-        console.error("Failed to generate MCQs:", err);
+        console.error("Failed to generate MCQs with Qwen AI:", err);
         if (isMounted) {
           setIsLoading(false);
         }
@@ -142,10 +145,10 @@ export default function Round2Page() {
             <Cpu size={28} color="var(--gold-light)" />
           </div>
           <h3 className="font-royal" style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '0.5rem' }}>
-            Synthesizing Domain Questions
+            Qwen AI Synthesizing Domain Questions
           </h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            Analyzing candidate skills ({skills.slice(0, 3).map(s => s.name).join(", ")}) for {jobRole.title}...
+            Testing verified resume proficiencies ({skills.slice(0, 4).map(s => s.name).join(", ")}) for {jobRole.title}...
           </p>
         </div>
       </div>

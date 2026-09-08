@@ -32,6 +32,10 @@ const initialState = {
 function appReducer(state, action) {
   switch (action.type) {
     case 'START_NEW_ANALYSIS':
+      try {
+        sessionStorage.removeItem('eval_candidate_id');
+        sessionStorage.removeItem('eval_candidate_token');
+      } catch (ignore) {}
       return {
         ...initialState,
         resultId: "res_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now(),

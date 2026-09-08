@@ -23,6 +23,7 @@ public class LeaderboardEntryDto {
     private String status;
     private String resumeViewUrl;
     private String companyName;
+    private String assessmentToken;
     private LocalDateTime expiryDate;
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;

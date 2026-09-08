@@ -118,26 +118,12 @@ public class ResumeBatchController {
                 candidate = candidateRepository.findByToken(token).orElse(null);
             }
 
-            // Deduplication: match recent candidate record with same email and role within 2 hours
-            if (candidate == null) {
-                List<Candidate> existingList = candidateRepository.findByEmailIgnoreCaseOrderByCreatedAtDesc(email);
-                for (Candidate existing : existingList) {
-                    if (existing.getCreatedAt() != null && 
-                        existing.getCreatedAt().isAfter(java.time.LocalDateTime.now().minusHours(2))) {
-                        if (existing.getStatus() == CandidateStatus.INVITED || 
-                            (existing.getTargetRole() != null && existing.getTargetRole().equalsIgnoreCase(targetRole))) {
-                            candidate = existing;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // If still null, create new
+            // If not updating an explicitly identified existing session, create a brand new candidate record
             if (candidate == null) {
                 candidate = new Candidate();
                 candidate.setToken(UUID.randomUUID().toString());
                 candidate.setCreatedAt(java.time.LocalDateTime.now());
+                candidate.setBatchDate(java.time.LocalDate.now());
             }
 
             candidate.setEmail(email);

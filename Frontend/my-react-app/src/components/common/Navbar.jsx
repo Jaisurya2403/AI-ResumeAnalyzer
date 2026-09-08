@@ -187,27 +187,6 @@ export default function Navbar() {
             <span>Archive</span>
           </Link>
 
-          {/* AI Settings Button */}
-          <button
-            onClick={() => dispatch({ type: 'TOGGLE_API_MODAL', payload: true })}
-            className="btn-dark"
-            style={{
-              padding: '0.45rem 0.85rem',
-              fontSize: '0.85rem',
-              borderRadius: 'var(--radius-full)',
-              border: '1px solid rgba(212, 175, 55, 0.3)',
-              background: 'rgba(212, 175, 55, 0.05)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              cursor: 'pointer'
-            }}
-            title="Configure AI Models (Groq, Gemini, Claude)"
-          >
-            <Key size={14} color="var(--gold-light)" />
-            <span style={{ color: 'var(--gold-light)' }}>AI Settings</span>
-          </button>
-
           {/* Live Interview Action Pill */}
           {state.resumeProfile && !isInterview && (
             <Link
@@ -444,39 +423,6 @@ export default function Navbar() {
                         <span>Batch Candidate ZIP</span>
                       </Link>
                     )}
-
-                    <button
-                      onClick={() => {
-                        setDropdownOpen(false);
-                        dispatch({ type: 'TOGGLE_API_MODAL', payload: true });
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.65rem',
-                        padding: '0.6rem 0.75rem',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-secondary)',
-                        background: 'transparent',
-                        border: 'none',
-                        fontSize: '0.85rem',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        width: '100%',
-                        transition: 'all 0.15s ease'
-                      }}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.background = 'rgba(212, 175, 55, 0.12)';
-                        e.currentTarget.style.color = '#fff';
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = 'var(--text-secondary)';
-                      }}
-                    >
-                      <Key size={16} color="var(--gold-light)" />
-                      <span>AI Model Settings</span>
-                    </button>
                   </div>
 
                   <div style={{ height: '1px', background: 'rgba(212, 175, 55, 0.15)', margin: '0.75rem 0' }} />

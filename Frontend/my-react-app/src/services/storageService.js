@@ -25,7 +25,7 @@ export const storageService = {
         createdAt: result.createdAt,
         candidateName: result.resumeProfile?.candidateName || "Candidate",
         jobRole: result.jobRole || { title: "Software Engineer", domain: "Software" },
-        fitnessPercent: result.finalReport?.fitnessPercent ?? result.fitnessPercent ?? 85,
+        fitnessPercent: result.finalReport?.fitnessPercent ?? result.fitnessPercent ?? 0,
         roundScores: result.roundScores || {}
       };
 
