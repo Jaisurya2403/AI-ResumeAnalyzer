@@ -65,7 +65,7 @@ export default function UploadPage() {
   };
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', paddingTop: '1rem' }}>
+    <div style={{ maxWidth: '1440px', width: '100%', margin: '0 auto', paddingTop: '1rem' }}>
       {/* Hero Section */}
       <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
         <div style={{

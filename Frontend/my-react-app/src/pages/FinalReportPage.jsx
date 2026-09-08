@@ -49,7 +49,7 @@ export default function FinalReportPage() {
   };
 
   const handleShare = () => {
-    const summaryText = `🏆 AURA AI Candidate Assessment Report\nCandidate: ${candidateName}\nTarget Role: ${role.title} (${role.domain})\nOverall Fitness Score: ${report.fitnessPercent}%\n• Round 1 (Aptitude): ${scores.round1}%\n• Round 2 (Domain MCQs): ${scores.round2}%\n• Round 3 (Adaptive Practical): ${scores.round3}%\n• Round 4 (Voice Communication): ${scores.round4}%\n\nEvaluated via AURA AI Resume & Interview Agent.`;
+    const summaryText = `🏆 EVAL AI Candidate Assessment Report\nCandidate: ${candidateName}\nTarget Role: ${role.title} (${role.domain})\nOverall Fitness Score: ${report.fitnessPercent}%\n• Round 1 (Aptitude): ${scores.round1}%\n• Round 2 (Domain MCQs): ${scores.round2}%\n• Round 3 (Adaptive Practical): ${scores.round3}%\n• Round 4 (Voice Communication): ${scores.round4}%\n\nEvaluated via EVAL AI Resume & Interview Agent.`;
     navigator.clipboard.writeText(summaryText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -61,7 +61,7 @@ export default function FinalReportPage() {
   };
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '3rem' }}>
+    <div style={{ maxWidth: '1440px', width: '100%', margin: '0 auto', paddingBottom: '3rem' }}>
       {/* Top Banner Actions */}
       <div style={{
         display: 'flex',

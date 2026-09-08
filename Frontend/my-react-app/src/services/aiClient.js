@@ -47,9 +47,13 @@ export const aiClient = {
         return this.cleanAndParseJSON(text);
       }
 
-      if (provider === "openai") {
-        const model = config.model || "gpt-4o-mini";
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      if (provider === "groq" || provider === "openai") {
+        const model = config.model || (provider === "groq" ? "qwen-2.5-32b" : "gpt-4o-mini");
+        const endpoint = provider === "groq"
+          ? "https://api.groq.com/openai/v1/chat/completions"
+          : "https://api.openai.com/v1/chat/completions";
+
+        const res = await fetch(endpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -59,7 +63,7 @@ export const aiClient = {
             model: model,
             response_format: { type: "json_object" },
             messages: [
-              { role: "system", content: systemInstruction },
+              { role: "system", content: `${systemInstruction}\nImportant: Output ONLY raw valid JSON matching the requested schema.` },
               { role: "user", content: prompt }
             ],
             temperature: 0.2
@@ -68,7 +72,7 @@ export const aiClient = {
 
         if (!res.ok) {
           const err = await res.text();
-          console.warn("OpenAI API Error:", err);
+          console.warn(`${provider.toUpperCase()} API Error:`, err);
           return null;
         }
 
