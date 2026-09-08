@@ -18,72 +18,14 @@ export default function LeaderboardPage() {
         const data = await res.json();
         setCandidates(data);
       } else {
-        // Fallback demo data if backend is offline
-        loadFallbackLeaderboard();
+        setCandidates([]);
       }
     } catch (err) {
-      console.warn("Backend not reached, loading mock leaderboard:", err);
-      loadFallbackLeaderboard();
+      console.warn("Backend not reached:", err);
+      setCandidates([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadFallbackLeaderboard = () => {
-    setCandidates([
-      {
-        rank: 1,
-        candidateId: 101,
-        name: "Alexander Vance",
-        email: "alex.vance@techdev.io",
-        targetRole: "Full Stack Engineer",
-        resumeScore: 92.0,
-        assessmentScore: 94.5,
-        overallScore: 93.6,
-        status: "COMPLETED",
-        resumeViewUrl: "#",
-        createdAt: "2026-09-08T10:30:00"
-      },
-      {
-        rank: 2,
-        candidateId: 102,
-        name: "Dr. Elena Rostova",
-        email: "elena.rostova@deepmind-labs.org",
-        targetRole: "AI / ML Engineer",
-        resumeScore: 96.0,
-        assessmentScore: 91.0,
-        overallScore: 92.8,
-        status: "COMPLETED",
-        resumeViewUrl: "#",
-        createdAt: "2026-09-08T11:15:00"
-      },
-      {
-        rank: 3,
-        candidateId: 103,
-        name: "Marcus Sterling",
-        email: "marcus.sterling@devops.net",
-        targetRole: "Backend Developer",
-        resumeScore: 86.0,
-        assessmentScore: 88.0,
-        overallScore: 87.3,
-        status: "COMPLETED",
-        resumeViewUrl: "#",
-        createdAt: "2026-09-08T12:00:00"
-      },
-      {
-        rank: 4,
-        candidateId: 104,
-        name: "Sophia Chen",
-        email: "sophia.chen@hardware-core.io",
-        targetRole: "Embedded Systems Engineer",
-        resumeScore: 84.0,
-        assessmentScore: null,
-        overallScore: 84.0,
-        status: "INVITED",
-        resumeViewUrl: "#",
-        createdAt: "2026-09-08T13:45:00"
-      }
-    ]);
   };
 
   useEffect(() => {
@@ -114,18 +56,27 @@ export default function LeaderboardPage() {
     }
   };
 
-  const filtered = candidates.filter(c => {
-    const matchesSearch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (c.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
-    const matchesRole = roleFilter === 'ALL' || (c.targetRole || '').includes(roleFilter);
-    return matchesSearch && matchesStatus && matchesRole;
-  });
+  const filtered = candidates
+    .filter(c => {
+      const matchesSearch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (c.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+      const matchesRole = roleFilter === 'ALL' || (c.targetRole || '').includes(roleFilter);
+      return matchesSearch && matchesStatus && matchesRole;
+    })
+    .sort((a, b) => {
+      const aHas = a.overallScore != null;
+      const bHas = b.overallScore != null;
+      if (aHas && bHas) return b.overallScore - a.overallScore;
+      if (aHas) return -1;
+      if (bHas) return 1;
+      return (b.resumeScore || 0) - (a.resumeScore || 0);
+    });
 
   const uniqueRoles = Array.from(new Set(candidates.map(c => c.targetRole).filter(Boolean)));
 
   return (
-    <div style={{ width: '100%', maxWidth: '1600px', margin: '0 auto', paddingTop: '1rem', paddingBottom: '3rem' }}>
+    <div style={{ width: '100%', padding: '0 0.5rem', paddingTop: '1rem', paddingBottom: '3rem' }}>
       {/* Header Banner */}
       <div className="royal-glass-card solid-border" style={{
         padding: '2.5rem',
@@ -345,19 +296,25 @@ export default function LeaderboardPage() {
 
                     {/* Overall Score */}
                     <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                      <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        background: 'rgba(212, 175, 55, 0.15)',
-                        border: '1px solid rgba(212, 175, 55, 0.4)',
-                        padding: '0.35rem 0.85rem',
-                        borderRadius: 'var(--radius-full)'
-                      }}>
-                        <span className="font-royal" style={{ fontWeight: 800, color: '#fff', fontSize: '1.05rem' }}>
-                          {cand.overallScore != null ? cand.overallScore : cand.resumeScore}%
+                      {cand.assessmentScore != null && cand.overallScore != null ? (
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          background: 'rgba(212, 175, 55, 0.15)',
+                          border: '1px solid rgba(212, 175, 55, 0.4)',
+                          padding: '0.35rem 0.85rem',
+                          borderRadius: 'var(--radius-full)'
+                        }}>
+                          <span className="font-royal" style={{ fontWeight: 800, color: '#fff', fontSize: '1.05rem' }}>
+                            {cand.overallScore}%
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          Pending
                         </span>
-                      </div>
+                      )}
                     </td>
 
                     {/* Status */}

@@ -69,8 +69,18 @@ export default function CandidateAssessmentPage() {
       setLoadingContext(true);
       try {
         const res = await fetch(`http://localhost:8085/api/assessment/${token}`);
+        if (res.status === 410) {
+          const errData = await res.json();
+          setCandidateInfo({ ...errData, isExpired: true });
+          return;
+        }
+
         if (res.ok) {
           const data = await res.json();
+          if (data.isExpired || data.status === 'EXPIRED') {
+            setCandidateInfo({ ...data, isExpired: true });
+            return;
+          }
           setCandidateInfo(data);
           if (data.alreadyCompleted) {
             setAlreadyCompleted(true);
@@ -81,6 +91,7 @@ export default function CandidateAssessmentPage() {
           setCandidateInfo({
             name: "Candidate",
             targetRole: "Full Stack Engineer",
+            companyName: "TechCorp Global",
             skills: "React, TypeScript, Node.js, SQL, System Design",
             email: "candidate@example.com"
           });
@@ -89,6 +100,7 @@ export default function CandidateAssessmentPage() {
         setCandidateInfo({
           name: "Candidate",
           targetRole: "Full Stack Engineer",
+          companyName: "TechCorp Global",
           skills: "React, TypeScript, Node.js, SQL, System Design",
           email: "candidate@example.com"
         });
@@ -423,6 +435,104 @@ export default function CandidateAssessmentPage() {
   };
 
   // -------------------------------------------------------------
+  // Link Expired Screen
+  // -------------------------------------------------------------
+  if (candidateInfo?.isExpired) {
+    return (
+      <div style={{
+        minHeight: '80vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        padding: '1.5rem'
+      }}>
+        <div className="royal-glass-card solid-border" style={{
+          width: '100%',
+          maxWidth: '750px',
+          padding: '3.5rem 3rem',
+          textAlign: 'center',
+          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(10, 13, 20, 0.98) 100%)',
+          borderColor: 'rgba(239, 68, 68, 0.5)',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
+          borderRadius: '24px'
+        }}>
+          <div style={{
+            width: '84px',
+            height: '84px',
+            borderRadius: '50%',
+            background: 'rgba(239, 68, 68, 0.18)',
+            border: '2px solid #ef4444',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.5rem',
+            boxShadow: '0 0 30px rgba(239, 68, 68, 0.35)'
+          }}>
+            <Lock size={40} color="#f87171" />
+          </div>
+
+          <div style={{ marginBottom: '1.25rem' }}>
+            <span style={{
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              background: 'rgba(239, 68, 68, 0.2)',
+              color: '#f87171',
+              border: '1px solid #ef4444',
+              padding: '0.4rem 1.25rem',
+              borderRadius: '20px',
+              display: 'inline-block',
+              letterSpacing: '0.06em'
+            }}>
+              LINK EXPIRED • INVITATION CLOSED
+            </span>
+          </div>
+
+          <h1 style={{
+            fontSize: 'clamp(1.8rem, 3.5vw, 2.4rem)',
+            color: '#ffffff',
+            fontWeight: 800,
+            marginBottom: '0.75rem',
+            fontFamily: "'Outfit', sans-serif"
+          }}>
+            Assessment Link Has Expired
+          </h1>
+
+          <p style={{
+            color: '#cbd5e1',
+            fontSize: '1.05rem',
+            lineHeight: '1.6',
+            maxWidth: '600px',
+            margin: '0 auto 2rem'
+          }}>
+            The deadline for this assessment invitation ({candidateInfo?.targetRole || "Role"}{candidateInfo?.companyName ? ` at ${candidateInfo.companyName}` : ''}) was <strong style={{ color: '#f87171' }}>{candidateInfo?.expiryDate ? new Date(candidateInfo.expiryDate).toLocaleString() : 'passed'}</strong>.
+          </p>
+
+          <div style={{
+            background: 'rgba(12, 16, 26, 0.9)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: 'var(--radius-md)',
+            padding: '1.5rem',
+            textAlign: 'left',
+            marginBottom: '2rem'
+          }}>
+            <h4 style={{ color: '#fca5a5', fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertTriangle size={17} color="#ef4444" /> Next Steps:
+            </h4>
+            <p style={{ color: '#94a3b8', fontSize: '0.88rem', lineHeight: '1.5', margin: 0 }}>
+              If you require a link extension or re-invitation, please contact the recruitment team at <strong style={{ color: '#fff' }}>{candidateInfo?.companyName || "the hiring organization"}</strong> directly.
+            </p>
+          </div>
+
+          <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
+            Session ID: {token} • EVAL AI Secure Assessment Portal
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // -------------------------------------------------------------
   // Round 5: Confidential Completion Screen (NO SCORES SHOWN)
   // -------------------------------------------------------------
   if (currentRound === 5) {
@@ -575,7 +685,7 @@ export default function CandidateAssessmentPage() {
             Welcome, <span style={{ color: '#ffd700', textShadow: '0 0 16px rgba(212, 175, 55, 0.4)' }}>{candidateInfo?.name}</span>
           </h1>
           <p style={{ color: '#e2e8f0', fontSize: '1.1rem', marginTop: '0.5rem', marginBottom: '2rem' }}>
-            You have been invited to complete a proctored 4-round technical assessment for the role of <strong style={{ color: '#ffd700' }}>{candidateInfo?.targetRole}</strong>.
+            You have been invited to complete a proctored 4-round technical assessment for the role of <strong style={{ color: '#ffd700' }}>{candidateInfo?.targetRole}</strong>{candidateInfo?.companyName ? <> at <strong style={{ color: '#ffd700' }}>{candidateInfo.companyName}</strong></> : ''}.
           </p>
 
           <div style={{

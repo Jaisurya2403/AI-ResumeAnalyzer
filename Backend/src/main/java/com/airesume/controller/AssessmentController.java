@@ -31,11 +31,25 @@ public class AssessmentController {
         }
 
         Candidate c = opt.get();
+
+        if (c.getExpiryDate() != null && java.time.LocalDateTime.now().isAfter(c.getExpiryDate())) {
+            Map<String, Object> expired = new HashMap<>();
+            expired.put("status", "EXPIRED");
+            expired.put("isExpired", true);
+            expired.put("message", "This assessment invitation has expired.");
+            expired.put("expiryDate", c.getExpiryDate().toString());
+            expired.put("companyName", c.getCompanyName());
+            expired.put("targetRole", c.getTargetRole());
+            return ResponseEntity.status(HttpStatus.GONE).body(expired);
+        }
+
         Map<String, Object> resp = new HashMap<>();
         resp.put("candidateId", c.getId());
         resp.put("name", c.getName());
         resp.put("email", c.getEmail());
         resp.put("targetRole", c.getTargetRole());
+        resp.put("companyName", c.getCompanyName());
+        resp.put("expiryDate", c.getExpiryDate() != null ? c.getExpiryDate().toString() : null);
         resp.put("skills", c.getSkills());
         resp.put("status", c.getStatus().name());
         resp.put("alreadyCompleted", c.getStatus().name().equals("COMPLETED"));
@@ -48,6 +62,17 @@ public class AssessmentController {
             @PathVariable String token,
             @RequestBody AssessmentSubmissionDto submission
     ) {
+        Optional<Candidate> opt = assessmentEvaluationService.getCandidateByToken(token);
+        if (opt.isPresent()) {
+            Candidate c = opt.get();
+            if (c.getExpiryDate() != null && java.time.LocalDateTime.now().isAfter(c.getExpiryDate())) {
+                Map<String, String> err = new HashMap<>();
+                err.put("status", "EXPIRED");
+                err.put("message", "Assessment deadline has passed. Submission rejected.");
+                return ResponseEntity.status(HttpStatus.GONE).body(err);
+            }
+        }
+
         boolean success = assessmentEvaluationService.submitAssessment(token, submission);
         if (!success) {
             Map<String, String> err = new HashMap<>();

@@ -3,8 +3,12 @@ import { storageService } from '../services/storageService';
 
 const initialState = {
   resultId: null,
+  candidateId: null,
+  candidateToken: null,
   createdAt: null,
   rawResumeText: "",
+  pdfBase64: null,
+  pdfFileName: null,
   resumeProfile: null,
   githubData: null,
   jobRole: { id: "fullstack-eng", title: "Full Stack Engineer", domain: "Software" },
@@ -33,7 +37,21 @@ function appReducer(state, action) {
         resultId: "res_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now(),
         createdAt: new Date().toISOString(),
         rawResumeText: action.payload.rawResumeText || "",
+        pdfBase64: action.payload.pdfBase64 || null,
+        pdfFileName: action.payload.pdfFileName || null,
         isAnalyzing: true
+      };
+
+    case 'SET_CANDIDATE_ID':
+      return {
+        ...state,
+        candidateId: action.payload
+      };
+
+    case 'SET_CANDIDATE_TOKEN':
+      return {
+        ...state,
+        candidateToken: action.payload
       };
 
     case 'SET_RESUME_PROFILE':

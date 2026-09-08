@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Sparkles, ArrowRight, UserCheck, BookOpen, Code2, Globe, FileText, CheckCircle2, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { storageService } from '../services/storageService';
 import SkillRadarChart from '../components/results/SkillRadarChart';
 import ProjectCardList from '../components/results/ProjectCardList';
@@ -11,6 +12,7 @@ import LinkBadges from '../components/results/LinkBadges';
 export default function ResultsPage() {
   const { id } = useParams();
   const { state, dispatch } = useApp();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   // If page is refreshed or loaded from direct link, load from localStorage if not present in memory
@@ -24,22 +26,24 @@ export default function ResultsPage() {
   }, [id, state.resumeProfile]);
 
   const profile = state.resumeProfile || {
-    candidateName: "Alexander Vance",
+    candidateName: user?.name || state.userName || "Candidate",
     skills: [
-      { name: "React / Modern UI", percent: 92 },
-      { name: "TypeScript / Node", percent: 95 },
-      { name: "System Architecture", percent: 88 },
-      { name: "Cloud & Microservices", percent: 84 },
-      { name: "Database & SQL Optimization", percent: 82 }
+      { name: "Frontend Development", percent: 85 },
+      { name: "Backend Systems", percent: 88 },
+      { name: "System Architecture", percent: 82 },
+      { name: "Cloud & APIs", percent: 80 },
+      { name: "Database Design", percent: 84 }
     ],
     projects: [
-      { name: "Omnisync Real-time Canvas", description: "Collaborative whiteboard engine with CRDT state synchronization and Redis pub/sub scaling to 85,000 concurrent sessions." },
-      { name: "CortexQL Query Accelerator", description: "Distributed database query optimization middleware cutting query latency by 64%." }
+      { name: "Core Application Platform", description: "Scalable full-stack application with modular architecture and high test coverage." },
+      { name: "Distributed Data Engine", description: "High-performance processing middleware optimizing query latency and system throughput." }
     ],
-    languages: ["TypeScript", "JavaScript", "Python", "SQL"],
-    links: { github: "https://github.com/facebook", linkedin: "https://linkedin.com", leetcode: null, portfolio: null },
-    summary: "Accomplished software engineer with deep expertise in reactive systems, distributed architectures, and scalable cloud applications."
+    languages: ["JavaScript", "TypeScript", "Python", "SQL"],
+    links: { github: null, linkedin: null, leetcode: null, portfolio: null },
+    summary: "Dedicated software engineer with a strong foundation in core engineering, full-stack development, and scalable cloud solutions."
   };
+
+  const displayName = user?.name || profile.candidateName || "Candidate Profile";
 
   return (
     <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
@@ -57,7 +61,7 @@ export default function ResultsPage() {
               </span>
             </div>
             <h1 className="font-royal" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', color: '#fff', fontWeight: 800 }}>
-              {profile.candidateName || "Candidate Profile"}
+              {displayName}
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', maxWidth: '720px', marginTop: '0.5rem', lineHeight: '1.6' }}>
               {profile.summary}

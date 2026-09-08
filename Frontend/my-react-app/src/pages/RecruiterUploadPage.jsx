@@ -1,11 +1,20 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Upload, Archive, Mail, CheckCircle2, AlertCircle, ArrowRight, Trophy, Sparkles, RefreshCw, FileText } from 'lucide-react';
+import { Upload, Archive, Mail, CheckCircle2, AlertCircle, ArrowRight, Trophy, Sparkles, RefreshCw, FileText, Building2, Briefcase, Calendar, Clock } from 'lucide-react';
 
 export default function RecruiterUploadPage() {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
+  const [companyName, setCompanyName] = useState('');
+  const [targetRole, setTargetRole] = useState('');
+  const [expiryDate, setExpiryDate] = useState(() => {
+    // Default to 3 days from now, format yyyy-MM-ddTHH:mm
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    d.setHours(23, 59, 0, 0);
+    return d.toISOString().slice(0, 16);
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressStage, setProgressStage] = useState('');
@@ -15,6 +24,16 @@ export default function RecruiterUploadPage() {
   const handleFileUpload = async (file) => {
     if (!file) return;
 
+    if (!companyName.trim()) {
+      setErrorMsg("Please enter the Company Name before uploading candidate resumes.");
+      return;
+    }
+
+    if (!targetRole.trim()) {
+      setErrorMsg("Please enter the Target Job Role before uploading candidate resumes.");
+      return;
+    }
+
     if (!file.name.toLowerCase().endsWith('.zip')) {
       setErrorMsg("Please upload a valid .ZIP archive containing candidate PDF resumes.");
       return;
@@ -22,10 +41,15 @@ export default function RecruiterUploadPage() {
 
     setErrorMsg('');
     setIsProcessing(true);
-    setProgressStage('Uploading and extracting ZIP archive...');
+    setProgressStage('Uploading and extracting ZIP archive for ' + companyName + '...');
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('companyName', companyName.trim());
+    formData.append('targetRole', targetRole.trim());
+    if (expiryDate) {
+      formData.append('expiryDate', expiryDate);
+    }
 
     try {
       const res = await fetch('http://localhost:8085/api/resumes/upload-zip', {
@@ -41,30 +65,16 @@ export default function RecruiterUploadPage() {
       setResults(data);
       setProgressStage('All candidate resumes parsed & assessment invitation emails dispatched!');
     } catch (err) {
-      console.warn("Backend error, falling back to mock ZIP simulation:", err);
-      simulateMockZipProcess(file.name);
+      console.error("Backend error processing ZIP archive:", err);
+      setErrorMessage(err.message || "Failed to process candidate ZIP archive. Please ensure backend is running.");
+      setProgressStage('');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const simulateMockZipProcess = (fileName) => {
-    const mockCandidates = [
-      { id: 1, name: "Alexander Vance", email: "alex.vance@techdev.io", targetRole: "Full Stack Engineer", resumeScore: 92.0, token: "tok_alex_849204", emailSent: true, fileName: "Alex_Vance_Resume.pdf" },
-      { id: 2, name: "Dr. Elena Rostova", email: "elena.rostova@deepmind-labs.org", targetRole: "AI / ML Engineer", resumeScore: 96.0, token: "tok_elena_394821", emailSent: true, fileName: "Elena_Rostova_Resume.pdf" },
-      { id: 3, name: "Marcus Sterling", email: "marcus.sterling@devops.net", targetRole: "Backend Developer", resumeScore: 86.0, token: "tok_marcus_583921", emailSent: true, fileName: "Marcus_Sterling_Resume.pdf" }
-    ];
-
-    setResults({
-      status: "SUCCESS",
-      processedCount: mockCandidates.length,
-      candidates: mockCandidates
-    });
-    setProgressStage('Simulated Batch: 3 Resumes extracted & invitations prepared.');
-  };
-
   return (
-    <div style={{ maxWidth: '1440px', width: '100%', margin: '0 auto', paddingTop: '1rem', paddingBottom: '3rem' }}>
+    <div style={{ width: '100%', padding: '0 0.5rem', paddingTop: '1rem', paddingBottom: '3rem' }}>
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
         <div style={{
@@ -87,8 +97,105 @@ export default function RecruiterUploadPage() {
           Upload Candidate <span className="gold-text-gradient">ZIP Archive</span>
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', maxWidth: '680px', margin: '0 auto', lineHeight: '1.6' }}>
-          Upload a ZIP containing multiple candidate PDF resumes. The system will unzip, extract skills, compute initial ATS resume scores, and dispatch personalized 4-round assessment invitations via email.
+          Upload a ZIP containing multiple candidate PDF resumes. Specify hiring company, target role, and assessment expiration date to organize candidate leaderboards into the archive.
         </p>
+      </div>
+
+      {/* Cohort Details Input Form */}
+      <div className="royal-glass-card solid-border" style={{ padding: '2rem', marginBottom: '2rem' }}>
+        <h3 className="font-royal" style={{ fontSize: '1.15rem', color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Building2 size={20} color="var(--gold-light)" />
+          <span>Hiring Campaign Configuration</span>
+        </h3>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+          {/* Company Name */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--gold-light)', fontWeight: 600, marginBottom: '0.5rem' }}>
+              Company Name <span style={{ color: 'var(--accent-crimson)' }}>*</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Building2 size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder="e.g. Google, Microsoft, Zoho, Tesla"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.8rem 1rem 0.8rem 2.75rem',
+                  background: 'rgba(5, 7, 10, 0.7)',
+                  border: '1px solid rgba(212, 175, 55, 0.3)',
+                  borderRadius: 'var(--radius-md)',
+                  color: '#fff',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--gold-light)'}
+                onBlur={(e) => e.target.style.borderColor = 'rgba(212, 175, 55, 0.3)'}
+              />
+            </div>
+          </div>
+
+          {/* Job Role */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--gold-light)', fontWeight: 600, marginBottom: '0.5rem' }}>
+              Target Job Role <span style={{ color: 'var(--accent-crimson)' }}>*</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Briefcase size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder="e.g. Fullstack Developer, Software Engineer"
+                value={targetRole}
+                onChange={(e) => setTargetRole(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.8rem 1rem 0.8rem 2.75rem',
+                  background: 'rgba(5, 7, 10, 0.7)',
+                  border: '1px solid rgba(212, 175, 55, 0.3)',
+                  borderRadius: 'var(--radius-md)',
+                  color: '#fff',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--gold-light)'}
+                onBlur={(e) => e.target.style.borderColor = 'rgba(212, 175, 55, 0.3)'}
+              />
+            </div>
+          </div>
+
+          {/* Expiry Date */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--gold-light)', fontWeight: 600, marginBottom: '0.5rem' }}>
+              Assessment Link Expiry Date & Time <span style={{ color: 'var(--accent-crimson)' }}>*</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Calendar size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="datetime-local"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.8rem 1rem 0.8rem 2.75rem',
+                  background: 'rgba(5, 7, 10, 0.7)',
+                  border: '1px solid rgba(212, 175, 55, 0.3)',
+                  borderRadius: 'var(--radius-md)',
+                  color: '#fff',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                  colorScheme: 'dark'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--gold-light)'}
+                onBlur={(e) => e.target.style.borderColor = 'rgba(212, 175, 55, 0.3)'}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Upload Dropzone */}
@@ -136,7 +243,7 @@ export default function RecruiterUploadPage() {
           {isProcessing ? "Processing ZIP Archive..." : "Drop Candidate ZIP Archive (.zip) here"}
         </h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-          Extracts multiple PDF resumes • Auto AI ATS Scoring • JavaMailSender Email Dispatch
+          Analyzes any resume format (PDF, Word docx/doc, Images, Text, etc.) • Auto AI ATS Scoring • JavaMailSender Email Dispatch
         </p>
 
         <button

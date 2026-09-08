@@ -33,8 +33,10 @@ public class LeaderboardController {
         int rank = 1;
         for (Candidate c : list) {
             double resScore = c.getResumeScore() != null ? c.getResumeScore() : 0.0;
-            double assessScore = c.getAssessmentScore() != null ? c.getAssessmentScore() : 0.0;
-            double overall = c.getOverallScore() != null ? c.getOverallScore() : resScore;
+            Double assessScore = c.getAssessmentScore();
+            Double overall = (assessScore != null || c.getStatus() == com.airesume.model.CandidateStatus.COMPLETED || c.getStatus() == com.airesume.model.CandidateStatus.DISQUALIFIED)
+                    ? c.getOverallScore()
+                    : null;
 
             LeaderboardEntryDto entry = LeaderboardEntryDto.builder()
                     .rank(rank++)
@@ -43,7 +45,7 @@ public class LeaderboardController {
                     .email(c.getEmail())
                     .targetRole(c.getTargetRole())
                     .resumeScore(resScore)
-                    .assessmentScore(c.getAssessmentScore() != null ? assessScore : null)
+                    .assessmentScore(assessScore)
                     .overallScore(overall)
                     .status(c.getStatus().name())
                     .resumeViewUrl("/api/resumes/" + c.getId() + "/pdf")

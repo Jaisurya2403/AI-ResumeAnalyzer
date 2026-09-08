@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, FileText, Sparkles, Shield, ArrowRight, Zap, CheckCircle2, Cpu, BarChart2 } from 'lucide-react';
+import { Upload, FileText, Sparkles, Shield, ArrowRight, CheckCircle2, Cpu, BarChart2, Lock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { pdfParser } from '../services/pdfParser';
-import { SAMPLE_RESUMES } from '../data/sampleResumeData';
 
 export default function UploadPage() {
   const { dispatch } = useApp();
+  const { isAuthenticated, user, openAuthModal } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   
@@ -14,7 +15,7 @@ export default function UploadPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleFileUpload = async (file) => {
+  const processFile = async (file) => {
     if (!file) return;
 
     if (!file.name.toLowerCase().endsWith('.pdf')) {
@@ -27,16 +28,50 @@ export default function UploadPage() {
 
     try {
       const extractedText = await pdfParser.extractTextFromPDF(file);
+      
+      const fileToBase64 = (f) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(f);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
+
+      let pdfBase64 = null;
+      try {
+        pdfBase64 = await fileToBase64(file);
+      } catch (b64Err) {
+        console.warn("Base64 conversion notice:", b64Err);
+      }
+
       dispatch({
         type: 'START_NEW_ANALYSIS',
-        payload: { rawResumeText: extractedText }
+        payload: { 
+          rawResumeText: extractedText,
+          pdfBase64: pdfBase64,
+          pdfFileName: file.name,
+          userEmail: user?.email || null,
+          userName: user?.name || null
+        }
       });
       navigate('/analyzing');
     } catch (err) {
       console.error("PDF Parsing error:", err);
-      setErrorMessage(err.message || "Failed to parse PDF resume. Please try another file or select a demo candidate.");
+      setErrorMessage(err.message || "Failed to parse PDF resume. Please try another PDF resume file.");
       setIsLoading(false);
     }
+  };
+
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+
+    if (!isAuthenticated) {
+      openAuthModal('login', () => {
+        processFile(file);
+      });
+      return;
+    }
+
+    processFile(file);
   };
 
   const handleDragOver = (e) => {
@@ -56,16 +91,18 @@ export default function UploadPage() {
     }
   };
 
-  const handleSelectSample = (sample) => {
-    dispatch({
-      type: 'START_NEW_ANALYSIS',
-      payload: { rawResumeText: sample.rawText }
-    });
-    navigate('/analyzing');
+  const handleUploadBoxClick = () => {
+    if (!isAuthenticated) {
+      openAuthModal('login', () => {
+        fileInputRef.current?.click();
+      });
+      return;
+    }
+    fileInputRef.current?.click();
   };
 
   return (
-    <div style={{ maxWidth: '1440px', width: '100%', margin: '0 auto', paddingTop: '1rem' }}>
+    <div style={{ width: '100%', padding: '0 0.5rem', paddingTop: '1rem' }}>
       {/* Hero Section */}
       <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
         <div style={{
@@ -111,7 +148,7 @@ export default function UploadPage() {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
+        onClick={handleUploadBoxClick}
         className="royal-glass-card solid-border"
         style={{
           padding: '3.5rem 2rem',
@@ -151,7 +188,7 @@ export default function UploadPage() {
           {isLoading ? "Reading and Extracting PDF..." : "Drop your PDF Resume here"}
         </h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-          Supports clean standard PDF resumes • Secure client-side parsing
+          Supports clean standard PDF resumes • Secure client-side parsing {!isAuthenticated && "• Sign-in required on upload"}
         </p>
 
         <button
@@ -160,8 +197,8 @@ export default function UploadPage() {
           disabled={isLoading}
           style={{ padding: '0.85rem 2rem', pointerEvents: 'none' }}
         >
-          <FileText size={18} />
-          <span>{isLoading ? "Analyzing..." : "Browse PDF File"}</span>
+          {isAuthenticated ? <FileText size={18} /> : <Lock size={18} />}
+          <span>{isLoading ? "Analyzing..." : (isAuthenticated ? "Browse PDF File" : "Sign In & Upload Resume")}</span>
         </button>
 
         {errorMessage && (
@@ -178,72 +215,6 @@ export default function UploadPage() {
             {errorMessage}
           </div>
         )}
-      </div>
-
-      {/* Demo Candidate Quick Try */}
-      <div className="royal-glass-card" style={{ padding: '2rem', marginBottom: '3.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-          <Zap size={20} color="var(--gold-light)" />
-          <h3 className="font-royal" style={{ fontSize: '1.15rem', color: '#fff' }}>
-            Instant Evaluation: Or Choose a Sample Candidate Profile
-          </h3>
-        </div>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-          Don't have a PDF ready? Experience the full end-to-end workflow instantly with curated candidate benchmarks:
-        </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
-          {SAMPLE_RESUMES.map(sample => (
-            <button
-              key={sample.id}
-              onClick={() => handleSelectSample(sample)}
-              style={{
-                background: 'rgba(10, 13, 20, 0.8)',
-                border: '1px solid rgba(212, 175, 55, 0.25)',
-                borderRadius: 'var(--radius-md)',
-                padding: '1.25rem',
-                textAlign: 'left',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: '0.75rem'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.borderColor = 'var(--gold-light)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 6px 20px rgba(212, 175, 55, 0.2)';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.25)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <div>
-                <div style={{ color: 'var(--gold-light)', fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.35rem' }}>
-                  {sample.name}
-                </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: '1.4' }}>
-                  {sample.label}
-                </div>
-              </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderTop: '1px solid rgba(255,255,255,0.06)',
-                paddingTop: '0.5rem',
-                fontSize: '0.78rem',
-                color: 'var(--gold-light)'
-              }}>
-                <span>Launch Analysis</span>
-                <ArrowRight size={14} />
-              </div>
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Feature Pillars */}
