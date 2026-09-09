@@ -187,25 +187,6 @@ export default function Navbar() {
             <span>Archive</span>
           </Link>
 
-          {/* Live Interview Action Pill */}
-          {state.resumeProfile && !isInterview && (
-            <Link
-              to="/interview/setup"
-              className="btn-gold"
-              style={{
-                padding: '0.45rem 1rem',
-                fontSize: '0.85rem',
-                borderRadius: 'var(--radius-full)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem'
-              }}
-            >
-              <span>Live Interview</span>
-              <ArrowRight size={15} />
-            </Link>
-          )}
-
           {/* User Profile / Auth Section */}
           {isAuthenticated ? (
             <div ref={dropdownRef} style={{ position: 'relative', marginLeft: '0.5rem' }}>

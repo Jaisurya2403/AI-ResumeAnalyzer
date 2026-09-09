@@ -57,7 +57,7 @@ function ProtectedAdminRoute({ children }) {
 
 function AppLayout() {
   const location = useLocation();
-  const isAssessmentRoute = location.pathname.startsWith('/assessment');
+  const isAssessmentRoute = location.pathname.startsWith('/assessment') || location.pathname.startsWith('/interview');
 
   return (
     <div className="app-container">

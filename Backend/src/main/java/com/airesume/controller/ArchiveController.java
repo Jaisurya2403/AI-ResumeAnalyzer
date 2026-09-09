@@ -37,27 +37,47 @@ public class ArchiveController {
     @GetMapping("/my-history")
     public ResponseEntity<?> getMyCandidateHistory(
             @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(value = "email", required = false) String emailParam
+            @RequestParam(value = "email", required = false) String emailParam,
+            @RequestParam(value = "name", required = false) String nameParam,
+            @RequestParam(value = "username", required = false) String usernameParam
     ) {
         String userEmail = null;
+        String userName = null;
         if (authHeader != null && !authHeader.isBlank()) {
             Optional<com.airesume.model.User> optUser = authService.getUserFromToken(authHeader);
             if (optUser.isPresent()) {
                 userEmail = optUser.get().getEmail();
+                userName = optUser.get().getName();
             }
         }
         if ((userEmail == null || userEmail.isBlank()) && emailParam != null && !emailParam.isBlank()) {
             userEmail = emailParam.trim();
         }
+        if ((userName == null || userName.isBlank()) && nameParam != null && !nameParam.isBlank()) {
+            userName = nameParam.trim();
+        }
+        if ((userName == null || userName.isBlank()) && usernameParam != null && !usernameParam.isBlank()) {
+            userName = usernameParam.trim();
+        }
 
-        if (userEmail == null || userEmail.isBlank()) {
+        if ((userEmail == null || userEmail.isBlank()) && (userName == null || userName.isBlank())) {
             Map<String, Object> err = new HashMap<>();
             err.put("authenticated", false);
             err.put("message", "Please sign in to view your personal archive.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(err);
         }
 
-        List<Candidate> candidates = candidateRepository.findByEmailIgnoreCaseOrderByCreatedAtDesc(userEmail);
+        List<Candidate> candidates;
+        if (userEmail != null && !userEmail.isBlank()) {
+            candidates = candidateRepository.findByEmailIgnoreCaseOrderByCreatedAtDesc(userEmail);
+        } else {
+            candidates = candidateRepository.findByNameIgnoreCaseOrderByCreatedAtDesc(userName);
+        }
+
+        // Only include assessments that the candidate actually attended (COMPLETED, DISQUALIFIED, IN_PROGRESS, or evaluated)
+        candidates = candidates.stream()
+                .filter(c -> c.getStatus() != null && c.getStatus() != com.airesume.model.CandidateStatus.INVITED)
+                .collect(java.util.stream.Collectors.toList());
 
         List<LeaderboardEntryDto> dtos = new ArrayList<>();
         int rank = 1;
@@ -80,7 +100,7 @@ public class ArchiveController {
                     .resumeScore(resScore)
                     .assessmentScore(assessScore)
                     .overallScore(overall)
-                    .status(c.getStatus() != null ? c.getStatus().name() : "INVITED")
+                    .status(c.getStatus() != null ? c.getStatus().name() : "COMPLETED")
                     .assessmentToken(c.getToken())
                     .resumeViewUrl("/api/resumes/" + c.getId() + "/pdf")
                     .createdAt(c.getCreatedAt())
@@ -91,6 +111,21 @@ public class ArchiveController {
         }
 
         return ResponseEntity.ok(dtos);
+    }
+
+    @DeleteMapping("/evaluations/{id}")
+    public ResponseEntity<?> deleteEvaluation(@PathVariable Long id) {
+        if (candidateRepository.existsById(id)) {
+            candidateRepository.deleteById(id);
+            try {
+                companyService.syncFromCandidates();
+            } catch (Exception ignore) {}
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("success", true);
+            resp.put("message", "Evaluation deleted successfully.");
+            return ResponseEntity.ok(resp);
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/companies")

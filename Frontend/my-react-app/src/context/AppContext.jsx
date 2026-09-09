@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 
-const initialState = {
+const defaultState = {
   resultId: null,
   candidateId: null,
   candidateToken: null,
@@ -26,8 +26,26 @@ const initialState = {
   },
   finalReport: null,
   isAnalyzing: false,
-  apiConfigModalOpen: false
+  apiConfigModalOpen: false,
+  malpracticeScore: 0,
+  proctoringViolations: [],
+  isCheating: false
 };
+
+function getInitialAppState() {
+  try {
+    const saved = sessionStorage.getItem('evalai_active_session');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object') {
+        return { ...defaultState, ...parsed };
+      }
+    }
+  } catch (e) {}
+  return defaultState;
+}
+
+const initialState = getInitialAppState();
 
 function appReducer(state, action) {
   switch (action.type) {
@@ -124,6 +142,27 @@ function appReducer(state, action) {
         apiConfigModalOpen: typeof action.payload === 'boolean' ? action.payload : !state.apiConfigModalOpen
       };
 
+    case 'UPDATE_MALPRACTICE_SCORE': {
+      const newScore = Math.max(0, action.payload);
+      return {
+        ...state,
+        malpracticeScore: newScore,
+        isCheating: newScore > 50
+      };
+    }
+
+    case 'ADD_PROCTORING_VIOLATION': {
+      const violation = action.payload;
+      const updatedViolations = [...state.proctoringViolations, violation];
+      const newScore = state.malpracticeScore + (violation.points || 0);
+      return {
+        ...state,
+        proctoringViolations: updatedViolations,
+        malpracticeScore: newScore,
+        isCheating: newScore > 50
+      };
+    }
+
     default:
       return state;
   }
@@ -134,7 +173,7 @@ const AppContext = createContext();
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  // Auto persist when final report or profile changes
+  // Auto persist to localStorage when final report or profile changes
   useEffect(() => {
     if (state.resultId && (state.resumeProfile || state.finalReport)) {
       storageService.saveResult({
@@ -149,6 +188,15 @@ export function AppProvider({ children }) {
       });
     }
   }, [state.resumeProfile, state.githubData, state.jobRole, state.roundScores, state.roundAnswers, state.finalReport, state.resultId]);
+
+  // Sync current active assessment state to sessionStorage
+  useEffect(() => {
+    try {
+      if (state.resultId || state.resumeProfile || state.candidateId) {
+        sessionStorage.setItem('evalai_active_session', JSON.stringify(state));
+      }
+    } catch (e) {}
+  }, [state]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

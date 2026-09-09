@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
@@ -112,6 +112,45 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const sendForgotPasswordOtp = async (email) => {
+    const res = await fetch(`${BACKEND_URL}/api/auth/forgot-password/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to send password reset code');
+    }
+    return data;
+  };
+
+  const verifyForgotPasswordOtp = async (email, otp) => {
+    const res = await fetch(`${BACKEND_URL}/api/auth/forgot-password/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Invalid or expired OTP code');
+    }
+    return data;
+  };
+
+  const resetPassword = async (email, otp, newPassword) => {
+    const res = await fetch(`${BACKEND_URL}/api/auth/forgot-password/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp, newPassword })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to reset password');
+    }
+    return data;
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -140,6 +179,9 @@ export function AuthProvider({ children }) {
         sendOtp,
         verifyOtp,
         register,
+        sendForgotPasswordOtp,
+        verifyForgotPasswordOtp,
+        resetPassword,
         logout
       }}
     >

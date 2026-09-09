@@ -1,5 +1,5 @@
 import React from 'react';
-import { Github, Linkedin, Code, Globe, ExternalLink } from 'lucide-react';
+import { Github, Linkedin, Code, Globe, ExternalLink, Award, Terminal, Cpu, Flame } from 'lucide-react';
 
 export default function LinkBadges({ links = {} }) {
   if (!links) return null;
@@ -8,8 +8,27 @@ export default function LinkBadges({ links = {} }) {
     { key: 'github', label: 'GitHub', icon: Github, color: '#e2e8f0', url: links.github },
     { key: 'linkedin', label: 'LinkedIn', icon: Linkedin, color: '#38bdf8', url: links.linkedin },
     { key: 'leetcode', label: 'LeetCode', icon: Code, color: '#fbbf24', url: links.leetcode },
+    { key: 'codeforces', label: 'Codeforces', icon: Flame, color: '#ef4444', url: links.codeforces },
+    { key: 'hackerrank', label: 'HackerRank', icon: Cpu, color: '#22c55e', url: links.hackerrank },
+    { key: 'codechef', label: 'CodeChef', icon: Terminal, color: '#a855f7', url: links.codechef },
+    { key: 'kaggle', label: 'Kaggle', icon: Award, color: '#20beff', url: links.kaggle },
     { key: 'portfolio', label: 'Portfolio', icon: Globe, color: 'var(--gold-light)', url: links.portfolio }
   ].filter(item => Boolean(item.url));
+
+  // Also include custom named links if present
+  if (Array.isArray(links.customLinks)) {
+    links.customLinks.forEach((cl, idx) => {
+      if (cl?.url) {
+        items.push({
+          key: `custom-${idx}`,
+          label: cl.label || 'Web Link',
+          icon: Globe,
+          color: 'var(--gold-light)',
+          url: cl.url
+        });
+      }
+    });
+  }
 
   if (items.length === 0) return null;
 

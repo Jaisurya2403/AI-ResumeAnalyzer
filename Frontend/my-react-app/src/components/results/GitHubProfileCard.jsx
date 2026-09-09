@@ -1,7 +1,32 @@
-import React from 'react';
-import { Github, Star, GitFork, BookOpen, ExternalLink, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Github, Star, GitFork, BookOpen, ExternalLink, ShieldCheck, Globe } from 'lucide-react';
+import { githubClient } from '../../services/githubClient';
 
-export default function GitHubProfileCard({ githubData }) {
+export default function GitHubProfileCard({ githubData: initialGithubData, profile = null }) {
+  const [data, setData] = useState(initialGithubData);
+
+  useEffect(() => {
+    if (initialGithubData) {
+      setData(initialGithubData);
+      return;
+    }
+
+    const ghLink = profile?.links?.github;
+    if (ghLink) {
+      const username = githubClient.extractUsername(ghLink);
+      if (username) {
+        githubClient.fetchUserData(ghLink, {
+          candidateName: profile.candidateName,
+          skills: profile.skills,
+          projects: profile.projects
+        }).then(fetched => {
+          if (fetched) setData(fetched);
+        });
+      }
+    }
+  }, [initialGithubData, profile]);
+
+  const githubData = data;
   if (!githubData) {
     return (
       <div className="royal-glass-card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>

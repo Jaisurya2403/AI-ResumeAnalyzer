@@ -5,6 +5,7 @@ import com.airesume.model.CandidateStatus;
 import com.airesume.repository.CandidateRepository;
 import com.airesume.service.AuthService;
 import com.airesume.service.CompanyService;
+import com.airesume.service.DocumentExtractionService;
 import com.airesume.service.LeaderboardPdfService;
 import com.airesume.service.ZipResumeProcessorService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,9 @@ public class ResumeBatchController {
     private ZipResumeProcessorService zipResumeProcessorService;
 
     @Autowired
+    private DocumentExtractionService documentExtractionService;
+
+    @Autowired
     private CandidateRepository candidateRepository;
 
     @Autowired
@@ -36,6 +40,30 @@ public class ResumeBatchController {
 
     @Autowired
     private LeaderboardPdfService leaderboardPdfService;
+
+    @PostMapping(value = "/extract-text", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> extractTextFromDocument(@RequestParam("file") MultipartFile file) {
+        try {
+            if (file == null || file.isEmpty()) {
+                Map<String, Object> err = new HashMap<>();
+                err.put("status", "ERROR");
+                err.put("message", "Uploaded document is empty.");
+                return ResponseEntity.badRequest().body(err);
+            }
+            byte[] bytes = file.getBytes();
+            String text = documentExtractionService.extractText(bytes, file.getOriginalFilename());
+            Map<String, Object> res = new HashMap<>();
+            res.put("status", "SUCCESS");
+            res.put("fileName", file.getOriginalFilename());
+            res.put("text", text);
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("status", "ERROR");
+            err.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
+        }
+    }
 
     @PostMapping("/upload-zip")
     public ResponseEntity<?> uploadZipFile(
@@ -275,5 +303,25 @@ public class ResumeBatchController {
         headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"");
 
         return new ResponseEntity<>(data, headers, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteCandidateEvaluation(@PathVariable Long id) {
+        if (candidateRepository.existsById(id)) {
+            candidateRepository.deleteById(id);
+            try {
+                companyService.syncFromCandidates();
+            } catch (Exception ignore) {}
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("success", true);
+            resp.put("message", "Evaluation deleted successfully.");
+            return ResponseEntity.ok(resp);
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @DeleteMapping("/evaluations/{id}")
+    public ResponseEntity<?> deleteCandidateEvaluationAlias(@PathVariable Long id) {
+        return deleteCandidateEvaluation(id);
     }
 }

@@ -55,8 +55,6 @@ export default function HistoryPage() {
       fetchCompanies();
     } else if (isAuthenticated && user?.email) {
       fetchMyHistory();
-    } else {
-      fetchCompanies();
     }
   }, [isAdmin, isAuthenticated, user]);
 
@@ -64,8 +62,13 @@ export default function HistoryPage() {
     setMyLoading(true);
     try {
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const emailQuery = user?.email ? `?email=${encodeURIComponent(user.email)}` : '';
-      const res = await fetch(`http://localhost:8085/api/archive/my-history${emailQuery}`, { headers });
+      const params = new URLSearchParams();
+      if (user?.email) params.append('email', user.email);
+      if (user?.name) params.append('name', user.name);
+      if (user?.username) params.append('username', user.username);
+
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const res = await fetch(`http://localhost:8085/api/archive/my-history${queryString}`, { headers });
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : (Array.isArray(data?.evaluations) ? data.evaluations : []);
@@ -287,12 +290,12 @@ export default function HistoryPage() {
           }}>
             <UserCheck size={16} color="var(--gold-light)" />
             <span style={{ fontSize: '0.82rem', color: 'var(--gold-light)', fontWeight: 600, letterSpacing: '0.05em' }}>
-              PERSONAL EVALUATION DOSSIER • {user?.email}
+              PERSONAL EVALUATION DOSSIER • {user?.name ? `${user.name.toUpperCase()} (${user?.email})` : user?.email}
             </span>
           </div>
 
           <h1 className="font-royal" style={{ fontSize: '2.5rem', color: '#fff', fontWeight: 800, marginBottom: '0.75rem' }}>
-            My Candidate <span className="gold-text-gradient">Archive</span>
+            {user?.name ? `${user.name}'s` : 'My Candidate'} <span className="gold-text-gradient">Archive</span>
           </h1>
 
           <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', maxWidth: '640px', margin: '0 auto 1.5rem', lineHeight: '1.6' }}>
@@ -337,251 +340,279 @@ export default function HistoryPage() {
         </div>
 
         {/* Content Table / Cards */}
-        {myLoading ? (
-          <div className="royal-glass-card solid-border" style={{ padding: '4rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
-            <RefreshCw size={32} className="spin" color="var(--gold-light)" style={{ margin: '0 auto 1rem' }} />
-            <p style={{ color: 'var(--text-muted)' }}>Loading your personal evaluations from database...</p>
-          </div>
-        ) : myHistory.length === 0 ? (
-          <div className="royal-glass-card solid-border" style={{ padding: '3.5rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
-            <div style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              background: 'rgba(212, 175, 55, 0.1)',
-              border: '1px solid rgba(212, 175, 55, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 1.25rem'
-            }}>
-              <FileText size={28} color="var(--gold-light)" />
-            </div>
-            <h3 className="font-royal" style={{ fontSize: '1.25rem', color: '#fff', marginBottom: '0.5rem' }}>
-              No Evaluations Recorded Yet
-            </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', maxWidth: '420px', margin: '0 auto 1.5rem' }}>
-              You have not analyzed any resumes with your account ({user?.email}) yet.
-            </p>
-            <Link to="/" className="btn-gold" style={{ padding: '0.75rem 1.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FileText size={16} />
-              <span>Go to Resume Analyzer</span>
-            </Link>
-          </div>
-        ) : (
-          <div className="royal-glass-card solid-border" style={{ padding: '2rem', overflowX: 'auto', width: '100%' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '850px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.2)', background: 'rgba(5, 7, 10, 0.5)' }}>
-                  <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)' }}>DATE</th>
-                  <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)' }}>NAME / EMAIL</th>
-                  <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)' }}>TARGET ROLE</th>
-                  <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)' }}>COMPANY</th>
-                  <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)', textAlign: 'center' }}>ATS SCORE</th>
-                  <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)', textAlign: 'center' }}>ASSESSMENT</th>
-                  <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)', textAlign: 'center' }}>OVERALL SCORE</th>
-                  <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)', textAlign: 'center' }}>STATUS</th>
-                  <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)', textAlign: 'center' }}>ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {myHistory
-                  .filter(c => 
-                    (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    (c.targetRole || c.jobRole || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    (c.companyName || '').toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map((cand, idx) => {
-                    const cId = cand.candidateId || cand.id;
-                    const cRole = cand.targetRole || cand.jobRole || 'Fullstack Engineer';
-                    const cAts = cand.resumeScore != null ? cand.resumeScore : (cand.atsScore != null ? cand.atsScore : 'N/A');
-                    const cStatus = cand.status || cand.assessmentStatus || 'INVITED';
-                    
-                    return (
-                      <tr
-                        key={cId || idx}
-                        style={{
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                          transition: 'background-color 0.2s',
-                          background: idx % 2 === 1 ? 'rgba(255, 255, 255, 0.015)' : 'transparent'
-                        }}
-                      >
-                        <td style={{ padding: '1rem 1.25rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                          {cand.createdAt ? new Date(cand.createdAt).toLocaleDateString() : 'Recent'}
-                        </td>
+        {(() => {
+          const attendedHistory = myHistory.filter(cand => {
+            const status = (cand.status || cand.assessmentStatus || '').toUpperCase();
+            // Strictly include only assessments that the candidate actually attended
+            return status === 'COMPLETED' || status === 'DISQUALIFIED' || status === 'EVALUATED' || status === 'TERMINATED' || (cand.assessmentScore !== null && cand.assessmentScore !== undefined);
+          });
 
-                        <td style={{ padding: '1rem 1.25rem' }}>
-                          <div style={{ color: '#fff', fontWeight: 700, fontSize: '0.95rem' }}>{cand.name || user?.name || 'Candidate'}</div>
-                          <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>{cand.email}</div>
-                        </td>
+          if (myLoading) {
+            return (
+              <div className="royal-glass-card solid-border" style={{ padding: '4rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+                <RefreshCw size={32} className="spin" color="var(--gold-light)" style={{ margin: '0 auto 1rem' }} />
+                <p style={{ color: 'var(--text-muted)' }}>Loading your attended assessments from database...</p>
+              </div>
+            );
+          }
 
-                        <td style={{ padding: '1rem 1.25rem', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-                          {cRole}
-                        </td>
+          if (attendedHistory.length === 0) {
+            return (
+              <div className="royal-glass-card solid-border" style={{ padding: '3.5rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  background: 'rgba(212, 175, 55, 0.1)',
+                  border: '1px solid rgba(212, 175, 55, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 1.25rem'
+                }}>
+                  <Award size={28} color="var(--gold-light)" />
+                </div>
+                <h3 className="font-royal" style={{ fontSize: '1.25rem', color: '#fff', marginBottom: '0.5rem' }}>
+                  No Attended Assessments Yet
+                </h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', maxWidth: '440px', margin: '0 auto 1.5rem', lineHeight: '1.6' }}>
+                  You have not attended or submitted any AI interview assessments under your account ({user?.email}) yet. Complete an assessment to see your verified scores recorded here.
+                </p>
+                <Link to="/" className="btn-gold" style={{ padding: '0.75rem 1.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Sparkles size={16} />
+                  <span>Start New Mock Assessment</span>
+                </Link>
+              </div>
+            );
+          }
 
-                        <td style={{ padding: '1rem 1.25rem', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-                          {cand.companyName || 'Standard'}
-                        </td>
+          return (
+            <div className="royal-glass-card solid-border" style={{ padding: '2rem', overflowX: 'auto', width: '100%' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '850px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.2)', background: 'rgba(5, 7, 10, 0.5)' }}>
+                    <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)' }}>DATE</th>
+                    <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)' }}>NAME / EMAIL</th>
+                    <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)' }}>TARGET ROLE</th>
+                    <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)' }}>COMPANY</th>
+                    <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)', textAlign: 'center' }}>ATS SCORE</th>
+                    <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)', textAlign: 'center' }}>ASSESSMENT</th>
+                    <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)', textAlign: 'center' }}>OVERALL SCORE</th>
+                    <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)', textAlign: 'center' }}>STATUS</th>
+                    <th style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: 'var(--gold-light)', textAlign: 'center' }}>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attendedHistory
+                    .filter(c => 
+                      (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                      (c.targetRole || c.jobRole || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      (c.companyName || '').toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .map((cand, idx) => {
+                      const cId = cand.candidateId || cand.id;
+                      const cRole = cand.targetRole || cand.jobRole || 'Fullstack Engineer';
+                      const cAts = cand.resumeScore != null ? cand.resumeScore : (cand.atsScore != null ? cand.atsScore : 'N/A');
+                      const cStatus = cand.status || cand.assessmentStatus || 'COMPLETED';
+                      
+                      return (
+                        <tr
+                          key={cId || idx}
+                          style={{
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                            transition: 'background-color 0.2s',
+                            background: idx % 2 === 1 ? 'rgba(255, 255, 255, 0.015)' : 'transparent'
+                          }}
+                        >
+                          <td style={{ padding: '1rem 1.25rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                            {cand.createdAt ? new Date(cand.createdAt).toLocaleDateString() : 'Recent'}
+                          </td>
 
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          <span style={{ color: 'var(--gold-light)', fontWeight: 700, fontSize: '0.95rem' }}>
-                            {cAts !== 'N/A' ? `${cAts}%` : 'N/A'}
-                          </span>
-                        </td>
-
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          {cand.assessmentScore != null ? (
-                            <span style={{ color: 'var(--accent-emerald)', fontWeight: 700, fontSize: '0.95rem' }}>
-                              {cand.assessmentScore}%
-                            </span>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
-                              Pending
-                            </span>
-                          )}
-                        </td>
-
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          {cand.assessmentScore != null && cand.overallScore != null ? (
-                            <div style={{
-                              display: 'inline-block',
-                              padding: '0.25rem 0.75rem',
-                              borderRadius: 'var(--radius-full)',
-                              background: 'rgba(212, 175, 55, 0.15)',
-                              border: '1px solid var(--gold-light)',
-                              color: 'var(--gold-light)',
-                              fontWeight: 800,
-                              fontSize: '1rem',
-                              boxShadow: '0 0 10px rgba(212, 175, 55, 0.2)'
-                            }}>
-                              {cand.overallScore}%
+                          <td style={{ padding: '1rem 1.25rem' }}>
+                            <div style={{ color: '#fff', fontWeight: 700, fontSize: '0.95rem' }}>
+                              {(!cand.name || cand.name.trim().toLowerCase() === 'candidate') 
+                                ? (user?.name || cand.email?.split('@')[0] || 'Candidate') 
+                                : cand.name}
                             </div>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
-                              Pending
-                            </span>
-                          )}
-                        </td>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>{cand.email}</div>
+                          </td>
 
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          {cStatus === 'COMPLETED' ? (
-                            <span className="badge-emerald" style={{ fontSize: '0.72rem' }}>
-                              <CheckCircle2 size={12} /> Evaluated
-                            </span>
-                          ) : cStatus === 'DISQUALIFIED' ? (
-                            <span style={{
-                              fontSize: '0.72rem',
-                              color: '#f87171',
-                              background: 'rgba(239, 68, 68, 0.15)',
-                              border: '1px solid #ef4444',
-                              padding: '0.25rem 0.6rem',
-                              borderRadius: 'var(--radius-full)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}>
-                              Terminated
-                            </span>
-                          ) : (
-                            <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
-                              <Clock size={12} /> Pending Test
-                            </span>
-                          )}
-                        </td>
+                          <td style={{ padding: '1rem 1.25rem', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                            {cRole}
+                          </td>
 
-                        <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                            {cand.assessmentToken && cStatus !== 'COMPLETED' && (
-                              <Link
-                                to={`/assessment/${cand.assessmentToken}`}
-                                className="btn-gold"
-                                style={{
-                                  padding: '0.35rem 0.75rem',
-                                  fontSize: '0.75rem',
-                                  borderRadius: 'var(--radius-sm)'
-                                }}
-                              >
-                                <span>Take Test</span>
-                              </Link>
+                          <td style={{ padding: '1rem 1.25rem', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                            {cand.companyName || 'Standard'}
+                          </td>
+
+                          <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                            <span style={{ color: 'var(--gold-light)', fontWeight: 700, fontSize: '0.95rem' }}>
+                              {cAts !== 'N/A' ? `${cAts}%` : 'N/A'}
+                            </span>
+                          </td>
+
+                          <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                            {cand.assessmentScore != null ? (
+                              <span style={{ color: 'var(--accent-emerald)', fontWeight: 700, fontSize: '0.95rem' }}>
+                                {cand.assessmentScore}%
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                0%
+                              </span>
                             )}
-                            <a
-                              href={`http://localhost:8085/api/resumes/${cId}/pdf`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn-dark"
-                              style={{
-                                padding: '0.35rem 0.75rem',
-                                fontSize: '0.75rem',
-                                borderRadius: 'var(--radius-sm)',
+                          </td>
+
+                          <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                            {cand.overallScore != null ? (
+                              <div style={{
+                                display: 'inline-block',
+                                padding: '0.25rem 0.75rem',
+                                borderRadius: 'var(--radius-full)',
+                                background: 'rgba(212, 175, 55, 0.15)',
+                                border: '1px solid var(--gold-light)',
+                                color: 'var(--gold-light)',
+                                fontWeight: 800,
+                                fontSize: '1rem',
+                                boxShadow: '0 0 10px rgba(212, 175, 55, 0.2)'
+                              }}>
+                                {cand.overallScore}%
+                              </div>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                0%
+                              </span>
+                            )}
+                          </td>
+
+                          <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                            {cStatus === 'COMPLETED' ? (
+                              <span className="badge-emerald" style={{ fontSize: '0.72rem' }}>
+                                <CheckCircle2 size={12} /> Evaluated
+                              </span>
+                            ) : cStatus === 'DISQUALIFIED' ? (
+                              <span style={{
+                                fontSize: '0.72rem',
+                                color: '#f87171',
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                border: '1px solid #ef4444',
+                                padding: '0.25rem 0.6rem',
+                                borderRadius: 'var(--radius-full)',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '4px'
-                              }}
-                            >
-                              <FileText size={12} color="var(--gold-light)" />
-                              <span>PDF</span>
-                            </a>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                              }}>
+                                Terminated
+                              </span>
+                            ) : (
+                              <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
+                                <Clock size={12} /> In Progress
+                              </span>
+                            )}
+                          </td>
+
+                          <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                              <a
+                                href={`http://localhost:8085/api/resumes/${cId}/pdf`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn-dark"
+                                style={{
+                                  padding: '0.35rem 0.85rem',
+                                  fontSize: '0.75rem',
+                                  borderRadius: 'var(--radius-sm)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px'
+                                }}
+                              >
+                                <FileText size={13} color="var(--gold-light)" />
+                                <span>View PDF Report</span>
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
     );
   }
 
-  // If unauthenticated guest, show sign-in prompt alongside public preview
+  // If unauthenticated guest, require login and DO NOT expose admin / corporate records
+  if (!isAuthenticated) {
+    return (
+      <div style={{ width: '100%', minHeight: '80vh', padding: '0 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="royal-glass-card solid-border" style={{ maxWidth: '640px', width: '100%', padding: '3.5rem 2.5rem', textAlign: 'center' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: 'rgba(212, 175, 55, 0.12)',
+            border: '1.5px solid var(--gold-light)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.5rem',
+            boxShadow: '0 0 25px rgba(212, 175, 55, 0.25)'
+          }}>
+            <Lock size={28} color="var(--gold-light)" />
+          </div>
+
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.3rem 0.8rem',
+            borderRadius: 'var(--radius-full)',
+            background: 'rgba(212, 175, 55, 0.1)',
+            border: '1px solid rgba(212, 175, 55, 0.3)',
+            marginBottom: '1rem'
+          }}>
+            <ShieldCheck size={14} color="var(--gold-light)" />
+            <span style={{ fontSize: '0.75rem', color: 'var(--gold-light)', fontWeight: 700, letterSpacing: '0.06em' }}>
+              SECURE ASSESSMENT ARCHIVE
+            </span>
+          </div>
+
+          <h2 className="font-royal" style={{ fontSize: '2rem', color: '#fff', fontWeight: 800, marginBottom: '0.85rem' }}>
+            Authentication <span className="gold-text-gradient">Required</span>
+          </h2>
+
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem', maxWidth: '480px', margin: '0 auto 2rem' }}>
+            Sign in to access your personal test evaluations and ATS dossiers, or sign in with administrator credentials for corporate hiring records.
+          </p>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => openAuthModal('login')}
+              className="btn-gold"
+              style={{ padding: '0.85rem 2rem', fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <LogIn size={17} />
+              <span>Sign In to Access Archive</span>
+            </button>
+            <button
+              onClick={() => openAuthModal('signup')}
+              className="btn-dark"
+              style={{ padding: '0.85rem 1.8rem', fontSize: '0.95rem' }}
+            >
+              <span>Create Candidate Account</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Admin Corporate Recruitment Hierarchy (Accessible only when isAuthenticated && isAdmin)
   return (
     <div style={{ width: '100%', minHeight: '80vh', padding: '0 0.5rem' }}>
-      {!isAuthenticated && (
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(10, 13, 20, 0.95) 100%)',
-          border: '1px solid rgba(212, 175, 55, 0.3)',
-          borderRadius: '16px',
-          padding: '1.25rem 2rem',
-          marginBottom: '2rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #d4af37, #aa820a)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <ShieldCheck size={20} color="#07080c" />
-            </div>
-            <div>
-              <h4 style={{ color: '#fff', margin: '0 0 0.2rem', fontSize: '1rem' }}>
-                Role-Based Archive Access
-              </h4>
-              <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.8rem' }}>
-                Sign in to view your personal test history, or sign in as Administrator for full corporate access.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => openAuthModal('login')}
-            className="btn-gold"
-            style={{ padding: '0.55rem 1.2rem', fontSize: '0.85rem' }}
-          >
-            <LogIn size={15} />
-            <span>Sign In to Access</span>
-          </button>
-        </div>
-      )}
-      
       {/* Top Header Navigation: Left-Aligned Back Button + Centered Breadcrumbs */}
       <div style={{
         display: 'grid',

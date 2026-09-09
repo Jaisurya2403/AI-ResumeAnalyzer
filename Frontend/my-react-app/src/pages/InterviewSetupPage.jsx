@@ -8,25 +8,47 @@ export default function InterviewSetupPage() {
   const { state, dispatch } = useApp();
   const navigate = useNavigate();
 
-  const [selectedRoleId, setSelectedRoleId] = useState(state.jobRole?.id || "fullstack-eng");
-  const currentRole = ROLE_PRESETS.find(r => r.id === selectedRoleId) || ROLE_PRESETS[0];
-  const [domain, setDomain] = useState(currentRole.domain || "Software");
+  const [domain, setDomain] = useState(state.jobRole?.domain || "Software");
+  const availableRoles = ROLE_PRESETS.filter(r => r.domain === domain);
+  const [selectedRoleId, setSelectedRoleId] = useState(
+    availableRoles.find(r => r.id === state.jobRole?.id)?.id || availableRoles[0]?.id || "fullstack-eng"
+  );
+  
+  const currentRole = ROLE_PRESETS.find(r => r.id === selectedRoleId) || availableRoles[0] || ROLE_PRESETS[0];
+
+  const handleDomainChange = (newDomain) => {
+    setDomain(newDomain);
+    const rolesForNewDomain = ROLE_PRESETS.filter(r => r.domain === newDomain);
+    if (rolesForNewDomain.length > 0) {
+      setSelectedRoleId(rolesForNewDomain[0].id);
+    }
+  };
 
   const handleRoleChange = (roleId) => {
     setSelectedRoleId(roleId);
     const role = ROLE_PRESETS.find(r => r.id === roleId);
-    if (role) {
+    if (role && role.domain !== domain) {
       setDomain(role.domain);
     }
   };
 
-  const handleStartInterview = () => {
+  const handleStartInterview = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen().catch(() => {});
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          await document.documentElement.webkitRequestFullscreen().catch(() => {});
+        }
+      }
+    } catch (e) {}
+
     dispatch({
       type: 'SET_JOB_ROLE',
       payload: {
         id: currentRole.id,
         title: currentRole.title,
-        domain: domain,
+        domain: currentRole.domain,
         coreSkills: currentRole.coreSkills
       }
     });
@@ -51,37 +73,6 @@ export default function InterviewSetupPage() {
       {/* Role & Domain Selection Card */}
       <div className="royal-glass-card solid-border" style={{ padding: '2.2rem', marginBottom: '2.5rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
-          {/* Role Dropdown */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--gold-light)', fontWeight: 600, marginBottom: '0.65rem' }}>
-              Target Job Role Preset
-            </label>
-            <select
-              value={selectedRoleId}
-              onChange={(e) => handleRoleChange(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.85rem 1rem',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(5, 7, 10, 0.85)',
-                border: '1px solid rgba(212, 175, 55, 0.4)',
-                color: '#fff',
-                fontSize: '0.95rem',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              {ROLE_PRESETS.map(r => (
-                <option key={r.id} value={r.id} style={{ background: '#0e111a', color: '#fff' }}>
-                  {r.title} ({r.domain})
-                </option>
-              ))}
-            </select>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-              {currentRole.description}
-            </p>
-          </div>
-
           {/* Domain Track */}
           <div>
             <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--gold-light)', fontWeight: 600, marginBottom: '0.65rem' }}>
@@ -92,7 +83,7 @@ export default function InterviewSetupPage() {
                 <button
                   key={opt.id}
                   type="button"
-                  onClick={() => setDomain(opt.id)}
+                  onClick={() => handleDomainChange(opt.id)}
                   style={{
                     flex: 1,
                     padding: '0.85rem 1rem',
@@ -117,6 +108,37 @@ export default function InterviewSetupPage() {
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
               Auto-calibrates technical question generation to {domain} industry standards.
+            </p>
+          </div>
+
+          {/* Role Dropdown */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--gold-light)', fontWeight: 600, marginBottom: '0.65rem' }}>
+              Target Job Role Preset ({domain} Domain)
+            </label>
+            <select
+              value={selectedRoleId}
+              onChange={(e) => handleRoleChange(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.85rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(5, 7, 10, 0.85)',
+                border: '1px solid rgba(212, 175, 55, 0.4)',
+                color: '#fff',
+                fontSize: '0.95rem',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              {availableRoles.map(r => (
+                <option key={r.id} value={r.id} style={{ background: '#0e111a', color: '#fff' }}>
+                  {r.title} ({r.domain})
+                </option>
+              ))}
+            </select>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+              {currentRole.description}
             </p>
           </div>
         </div>

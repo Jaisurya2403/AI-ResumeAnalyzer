@@ -71,6 +71,43 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/forgot-password/send-otp")
+    public ResponseEntity<?> forgotPasswordSendOtp(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        Map<String, Object> res = authService.sendForgotPasswordOtp(email);
+        if (Boolean.TRUE.equals(res.get("success"))) {
+            return ResponseEntity.ok(res);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+        }
+    }
+
+    @PostMapping("/forgot-password/verify-otp")
+    public ResponseEntity<?> forgotPasswordVerifyOtp(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String otp = payload.get("otp");
+        Map<String, Object> res = authService.verifyForgotPasswordOtp(email, otp);
+        if (Boolean.TRUE.equals(res.get("success"))) {
+            return ResponseEntity.ok(res);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+        }
+    }
+
+    @PostMapping("/forgot-password/reset")
+    public ResponseEntity<?> forgotPasswordReset(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String otp = payload.get("otp");
+        String newPassword = payload.get("newPassword") != null ? payload.get("newPassword") : payload.get("password");
+
+        Map<String, Object> res = authService.resetPassword(email, otp, newPassword);
+        if (Boolean.TRUE.equals(res.get("success"))) {
+            return ResponseEntity.ok(res);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+        }
+    }
+
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@RequestHeader(value = "Authorization", required = false) String authHeader) {
         Optional<User> optUser = authService.getUserFromToken(authHeader);

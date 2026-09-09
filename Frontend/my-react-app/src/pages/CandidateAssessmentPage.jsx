@@ -7,6 +7,7 @@ import McqOptions from '../components/interview/McqOptions';
 import VoiceRecorder from '../components/interview/VoiceRecorder';
 import { getRandomAptitudeQuestions } from '../data/aptitudeQuestions';
 import { aiClient } from '../services/aiClient';
+import ProctoringCamera from '../components/interview/ProctoringCamera';
 
 export default function CandidateAssessmentPage() {
   const { token } = useParams();
@@ -17,6 +18,12 @@ export default function CandidateAssessmentPage() {
   const [currentRound, setCurrentRound] = useState(0); // 0: Welcome Briefing, 1: Aptitude, 2: Domain, 3: Practical, 4: Voice, 5: Completed
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [alreadyCompleted, setAlreadyCompleted] = useState(false);
+
+  // Round Timer States (in seconds)
+  const [r1TimeRemaining, setR1TimeRemaining] = useState(300); // 5 mins
+  const [r2TimeRemaining, setR2TimeRemaining] = useState(480); // 8 mins
+  const [r3TimeRemaining, setR3TimeRemaining] = useState(600); // 10 mins
+  const [r4TimeRemaining, setR4TimeRemaining] = useState(300); // 5 mins
 
   // Proctoring & Fullscreen State
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -54,8 +61,12 @@ export default function CandidateAssessmentPage() {
   // Helper: Request Fullscreen
   const requestFullscreenMode = async () => {
     try {
-      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen();
+      if (!document.fullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen().catch(() => {});
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          await document.documentElement.webkitRequestFullscreen().catch(() => {});
+        }
         setIsFullscreen(true);
       }
     } catch (err) {
@@ -63,10 +74,20 @@ export default function CandidateAssessmentPage() {
     }
   };
 
-  // 1. Fetch Candidate Context
+  // 1. Fetch Candidate Context & Enforce Lock
   useEffect(() => {
     async function loadCandidate() {
       setLoadingContext(true);
+
+      const localLock = localStorage.getItem(`eval_locked_${token}`);
+      if (localLock === 'DISQUALIFIED') {
+        setAutoSubmittedViolation(true);
+        setCurrentRound(5);
+      } else if (localLock === 'COMPLETED') {
+        setAlreadyCompleted(true);
+        setCurrentRound(5);
+      }
+
       try {
         const res = await fetch(`http://localhost:8085/api/assessment/${token}`);
         if (res.status === 410) {
@@ -82,12 +103,16 @@ export default function CandidateAssessmentPage() {
             return;
           }
           setCandidateInfo(data);
-          if (data.alreadyCompleted) {
+          if (data.isDisqualified || data.status === 'DISQUALIFIED') {
+            setAutoSubmittedViolation(true);
+            setCurrentRound(5);
+            localStorage.setItem(`eval_locked_${token}`, 'DISQUALIFIED');
+          } else if (data.alreadyCompleted || data.status === 'COMPLETED') {
             setAlreadyCompleted(true);
             setCurrentRound(5);
+            localStorage.setItem(`eval_locked_${token}`, 'COMPLETED');
           }
         } else {
-          // Fallback demo context if backend is offline
           setCandidateInfo({
             name: "Candidate",
             targetRole: "Full Stack Engineer",
@@ -162,10 +187,55 @@ export default function CandidateAssessmentPage() {
       setIsSubmitting(false);
       if (isViolationSubmit) {
         setAutoSubmittedViolation(true);
+        localStorage.setItem(`eval_locked_${token}`, 'DISQUALIFIED');
+      } else {
+        setAlreadyCompleted(true);
+        localStorage.setItem(`eval_locked_${token}`, 'COMPLETED');
       }
-      setCurrentRound(5); // Show Completion Screen
+      setCurrentRound(5); // Show Locked Completion Screen
     }
   }, [token, r4Questions, r4Transcripts, scores, r1Answers, r2Answers, r3Answers]);
+
+  // Countdown timer per section effect
+  useEffect(() => {
+    if (currentRound < 1 || currentRound > 4) return;
+    const timer = setInterval(() => {
+      if (currentRound === 1) {
+        setR1TimeRemaining(prev => {
+          if (prev <= 1) {
+            handleFinishRound1();
+            return 0;
+          }
+          return prev - 1;
+        });
+      } else if (currentRound === 2) {
+        setR2TimeRemaining(prev => {
+          if (prev <= 1) {
+            handleFinishRound2();
+            return 0;
+          }
+          return prev - 1;
+        });
+      } else if (currentRound === 3) {
+        setR3TimeRemaining(prev => {
+          if (prev <= 1) {
+            handleFinishRound3();
+            return 0;
+          }
+          return prev - 1;
+        });
+      } else if (currentRound === 4) {
+        setR4TimeRemaining(prev => {
+          if (prev <= 1) {
+            handleFinalSubmit(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [currentRound, handleFinalSubmit]);
 
   // 2. Proctoring Event Listeners (Enforce max 3 tab switches in background)
   useEffect(() => {
@@ -289,13 +359,31 @@ export default function CandidateAssessmentPage() {
     );
   }
 
-  // Proctoring HUD Bar Header Component (Clean without revealing switch counter)
+  // Proctoring HUD Bar Header Component (with live Section countdown timer)
   const renderProctoringHUD = () => {
     if (currentRound < 1 || currentRound > 4) return null;
+
+    const currentRemaining = currentRound === 1 
+      ? r1TimeRemaining 
+      : currentRound === 2 
+      ? r2TimeRemaining 
+      : currentRound === 3 
+      ? r3TimeRemaining 
+      : r4TimeRemaining;
+
+    const formatTimer = (secs) => {
+      const m = Math.floor(secs / 60);
+      const s = (secs % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    };
+
+    const isUrgent = currentRemaining < 60;
+
     return (
+      <>
       <div style={{
         background: 'rgba(12, 16, 26, 0.95)',
-        border: '1px solid rgba(212, 175, 55, 0.35)',
+        border: `1px solid ${isUrgent ? 'rgba(239, 68, 68, 0.5)' : 'rgba(212, 175, 55, 0.35)'}`,
         borderRadius: 'var(--radius-md)',
         padding: '0.85rem 1.5rem',
         marginBottom: '1.5rem',
@@ -304,9 +392,9 @@ export default function CandidateAssessmentPage() {
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '1rem',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)'
+        boxShadow: isUrgent ? '0 4px 25px rgba(239, 68, 68, 0.25)' : '0 4px 20px rgba(0, 0, 0, 0.5)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -328,7 +416,26 @@ export default function CandidateAssessmentPage() {
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+          {/* Live Section Countdown Timer Badge */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: isUrgent ? 'rgba(239, 68, 68, 0.2)' : 'rgba(212, 175, 55, 0.15)',
+            border: `1px solid ${isUrgent ? '#ef4444' : 'rgba(212, 175, 55, 0.4)'}`,
+            padding: '0.35rem 0.85rem',
+            borderRadius: '20px',
+            fontSize: '0.85rem',
+            color: isUrgent ? '#f87171' : '#ffd700',
+            fontWeight: 700,
+            letterSpacing: '0.02em',
+            animation: isUrgent ? 'pulse 1s infinite' : 'none'
+          }}>
+            <Clock size={15} color={isUrgent ? '#f87171' : '#ffd700'} />
+            <span>Round {currentRound} Timer: {formatTimer(currentRemaining)}</span>
+          </div>
+
           {!isFullscreen ? (
             <button
               onClick={requestFullscreenMode}
@@ -363,6 +470,8 @@ export default function CandidateAssessmentPage() {
           )}
         </div>
       </div>
+      <ProctoringCamera enableAudioDetection={currentRound >= 1 && currentRound <= 3} />
+      </>
     );
   };
 
@@ -763,6 +872,7 @@ export default function CandidateAssessmentPage() {
               totalQuestions={r1Questions.length}
               questionText={currentQ.question}
               tag={currentQ.category}
+              timeRemaining={r1TimeRemaining}
             />
             <div style={{ marginBottom: '2rem' }}>
               <McqOptions
@@ -817,6 +927,7 @@ export default function CandidateAssessmentPage() {
               totalQuestions={r2Questions.length}
               questionText={currentQ.question}
               tag={currentQ.skillTag || candidateInfo?.targetRole}
+              timeRemaining={r2TimeRemaining}
             />
             <div style={{ marginBottom: '2rem' }}>
               <McqOptions
@@ -867,7 +978,24 @@ export default function CandidateAssessmentPage() {
         {currentQ && (
           <>
             <div className="royal-glass-card solid-border" style={{ padding: '2.5rem', marginBottom: '1.5rem' }}>
-              <span className="badge-gold" style={{ marginBottom: '0.85rem' }}>Scenario {r3Index + 1} of {r3Questions.length}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <span className="badge-gold">Scenario {r3Index + 1} of {r3Questions.length}</span>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  color: r3TimeRemaining < 60 ? '#f87171' : 'var(--gold-light)',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  background: 'rgba(5, 7, 10, 0.6)',
+                  padding: '0.3rem 0.75rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid rgba(212, 175, 55, 0.2)'
+                }}>
+                  <Clock size={15} />
+                  <span>{Math.floor(r3TimeRemaining / 60)}:{(r3TimeRemaining % 60).toString().padStart(2, '0')}</span>
+                </div>
+              </div>
               <h2 style={{ fontSize: '1.35rem', color: '#ffffff', fontWeight: 600, lineHeight: '1.55', marginBottom: '1.5rem' }}>
                 {currentQ.question}
               </h2>
@@ -934,7 +1062,24 @@ export default function CandidateAssessmentPage() {
         {currentQ && (
           <>
             <div className="royal-glass-card solid-border" style={{ padding: '2.5rem', marginBottom: '1.5rem' }}>
-              <span className="badge-gold" style={{ marginBottom: '0.85rem' }}>Voice Prompt {r4Index + 1} of {r4Questions.length}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <span className="badge-gold">Voice Prompt {r4Index + 1} of {r4Questions.length}</span>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  color: r4TimeRemaining < 60 ? '#f87171' : 'var(--gold-light)',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  background: 'rgba(5, 7, 10, 0.6)',
+                  padding: '0.3rem 0.75rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid rgba(212, 175, 55, 0.2)'
+                }}>
+                  <Clock size={15} />
+                  <span>{Math.floor(r4TimeRemaining / 60)}:{(r4TimeRemaining % 60).toString().padStart(2, '0')}</span>
+                </div>
+              </div>
               <h2 style={{ fontSize: '1.35rem', color: '#ffffff', fontWeight: 600, lineHeight: '1.55' }}>
                 {currentQ}
               </h2>

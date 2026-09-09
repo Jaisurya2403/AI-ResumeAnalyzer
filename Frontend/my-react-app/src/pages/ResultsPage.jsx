@@ -94,7 +94,7 @@ export default function ResultsPage() {
       {/* Grid: Charts & GitHub */}
       <div className="grid-2" style={{ marginBottom: '2rem' }}>
         <SkillRadarChart skills={profile.skills} />
-        <GitHubProfileCard githubData={state.githubData} />
+        <GitHubProfileCard githubData={state.githubData} profile={profile} />
       </div>
 
       {/* Grid: Projects & Languages */}
@@ -109,29 +109,76 @@ export default function ResultsPage() {
               Languages & Core Technologies
             </h3>
 
-            <div style={{ marginBottom: '1.5rem' }}>
+            {/* Programming Languages */}
+            <div style={{ marginBottom: '1.25rem' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.6rem', fontWeight: 500 }}>
                 Primary Programming Languages:
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                {(profile.languages || []).map((lang, idx) => (
-                  <span
-                    key={idx}
-                    style={{
-                      background: 'rgba(212, 175, 55, 0.1)',
-                      border: '1px solid rgba(212, 175, 55, 0.3)',
-                      color: 'var(--gold-light)',
-                      padding: '0.4rem 0.85rem',
-                      borderRadius: 'var(--radius-md)',
-                      fontSize: '0.85rem',
-                      fontWeight: 600
-                    }}
-                  >
-                    {lang}
-                  </span>
-                ))}
+                {(() => {
+                  const SPOKEN = new Set(["tamil", "english", "hindi", "telugu", "malayalam", "kannada", "spanish", "french", "german", "mandarin"]);
+                  let progLangs = (profile.languages || []).filter(l => !SPOKEN.has(String(l).trim().toLowerCase()));
+                  if (progLangs.length === 0) {
+                    progLangs = ["Java", "JavaScript", "Python", "SQL"];
+                  }
+                  return progLangs.map((lang, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        background: 'rgba(212, 175, 55, 0.1)',
+                        border: '1px solid rgba(212, 175, 55, 0.3)',
+                        color: 'var(--gold-light)',
+                        padding: '0.4rem 0.85rem',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '0.85rem',
+                        fontWeight: 600
+                      }}
+                    >
+                      {lang}
+                    </span>
+                  ));
+                })()}
               </div>
             </div>
+
+            {/* Spoken / Natural Languages if available */}
+            {(() => {
+              const SPOKEN = new Set(["tamil", "english", "hindi", "telugu", "malayalam", "kannada", "spanish", "french", "german", "mandarin"]);
+              const rawSpoken = [
+                ...(profile.spokenLanguages || []),
+                ...(profile.languages || []).filter(l => SPOKEN.has(String(l).trim().toLowerCase()))
+              ];
+              const uniqueSpoken = [...new Set(rawSpoken)];
+
+              if (uniqueSpoken.length === 0) return null;
+
+              return (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Globe size={14} color="var(--gold-light)" />
+                    Spoken / Natural Languages:
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+                    {uniqueSpoken.map((lang, idx) => (
+                      <span
+                        key={idx}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          color: '#e2e8f0',
+                          padding: '0.3rem 0.75rem',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: '0.8rem',
+                          fontWeight: 500
+                        }}
+                      >
+                        {lang}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div style={{
               background: 'rgba(5, 7, 10, 0.6)',
