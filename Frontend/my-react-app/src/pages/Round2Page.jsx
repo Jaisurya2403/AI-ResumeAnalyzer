@@ -6,6 +6,7 @@ import { aiClient } from '../services/aiClient';
 import ProgressBar from '../components/common/ProgressBar';
 import QuestionCard from '../components/interview/QuestionCard';
 import McqOptions from '../components/interview/McqOptions';
+import ProctoringCamera from '../components/interview/ProctoringCamera';
 
 export default function Round2Page() {
   const { state, dispatch } = useApp();
@@ -25,6 +26,26 @@ export default function Round2Page() {
   const jobRole = state.jobRole || { title: "Full Stack Engineer", domain: "Software" };
   const resumeQuality = state.resumeProfile?.resumeQuality || {};
   const projects = state.resumeProfile?.projects || [];
+
+  // Ensure Fullscreen mode during assessment
+  useEffect(() => {
+    const enterFS = async () => {
+      try {
+        if (!document.fullscreenElement) {
+          if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen().catch(() => {});
+          } else if (document.documentElement.webkitRequestFullscreen) {
+            await document.documentElement.webkitRequestFullscreen().catch(() => {});
+          }
+        }
+      } catch (e) {}
+    };
+    enterFS();
+    window.addEventListener('click', enterFS, { once: true });
+    return () => {
+      window.removeEventListener('click', enterFS);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -165,6 +186,9 @@ export default function Round2Page() {
 
   return (
     <div style={{ maxWidth: '860px', margin: '0 auto' }}>
+      {/* MediaPipe AI Proctoring Camera HUD with Voice Activity Detection */}
+      <ProctoringCamera enableAudioDetection={true} />
+
       {/* Progress Track */}
       <ProgressBar currentRound={2} completedScores={state.roundScores} />
 

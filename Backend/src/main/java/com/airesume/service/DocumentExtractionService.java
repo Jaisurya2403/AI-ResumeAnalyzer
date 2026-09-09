@@ -98,11 +98,13 @@ public class DocumentExtractionService {
     }
 
     public String extractTextFromDocx(byte[] docxBytes) {
+        StringBuilder fullDoc = new StringBuilder();
         try (ByteArrayInputStream bais = new ByteArrayInputStream(docxBytes);
              ZipInputStream zis = new ZipInputStream(bais)) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                if ("word/document.xml".equalsIgnoreCase(entry.getName())) {
+                String name = entry.getName().toLowerCase();
+                if (name.startsWith("word/document") || name.startsWith("word/header") || name.startsWith("word/footer")) {
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     byte[] buffer = new byte[4096];
                     int len;
@@ -111,9 +113,15 @@ public class DocumentExtractionService {
                     }
                     String xml = baos.toString(StandardCharsets.UTF_8);
                     
-                    String text = xml.replaceAll("</w:p>", "\n")
+                    String text = xml.replaceAll("<w:p[^>]*>", "\n")
+                                     .replaceAll("</w:p>", "\n")
+                                     .replaceAll("<w:br\\s*/>", "\n")
+                                     .replaceAll("<w:cr\\s*/>", "\n")
+                                     .replaceAll("<w:tab\\s*/>", "\t")
+                                     .replaceAll("<w:tr[^>]*>", "\n")
                                      .replaceAll("</w:tr>", "\n")
-                                     .replaceAll("<[^>]+>", " ")
+                                     .replaceAll("<w:tc[^>]*>", " ")
+                                     .replaceAll("<[^>]+>", "")
                                      .replaceAll("&amp;", "&")
                                      .replaceAll("&lt;", "<")
                                      .replaceAll("&gt;", ">")
@@ -121,29 +129,53 @@ public class DocumentExtractionService {
                                      .replaceAll("&apos;", "'")
                                      .replaceAll("[ \\t]+", " ")
                                      .trim();
-                    return text;
+                    if (!text.isBlank()) {
+                        fullDoc.append(text).append("\n\n");
+                    }
                 }
             }
         } catch (Exception e) {
             System.err.println("Error extracting text from DOCX: " + e.getMessage());
         }
+
+        String result = fullDoc.toString().trim();
+        if (result.length() >= 20) {
+            return result;
+        }
+
         return extractTextFromBinaryDoc(docxBytes);
     }
 
     public String extractTextFromBinaryDoc(byte[] docBytes) {
-        StringBuilder sb = new StringBuilder();
-        boolean inWord = false;
+        // Try UTF-16LE stream
+        StringBuilder utf16 = new StringBuilder();
+        for (int i = 0; i < docBytes.length - 1; i += 2) {
+            int code = (docBytes[i] & 0xFF) | ((docBytes[i + 1] & 0xFF) << 8);
+            if ((code >= 32 && code <= 126) || code == '\n' || code == '\r' || code == '\t') {
+                utf16.append((char) code);
+            } else if (code >= 160 && code <= 0x052F) {
+                utf16.append((char) code);
+            } else if (utf16.length() > 0 && utf16.charAt(utf16.length() - 1) != ' ') {
+                utf16.append(' ');
+            }
+        }
+
+        // Try ASCII stream
+        StringBuilder ascii = new StringBuilder();
         for (int i = 0; i < docBytes.length; i++) {
             byte b = docBytes[i];
             if ((b >= 32 && b <= 126) || b == '\n' || b == '\r' || b == '\t') {
-                sb.append((char) b);
-                inWord = true;
-            } else if (inWord) {
-                sb.append(' ');
-                inWord = false;
+                ascii.append((char) b);
+            } else if (ascii.length() > 0 && ascii.charAt(ascii.length() - 1) != ' ') {
+                ascii.append(' ');
             }
         }
-        return sb.toString().replaceAll("\\s+", " ").trim();
+
+        String cleanUtf16 = utf16.toString().replaceAll("\\s+", " ").trim();
+        String cleanAscii = ascii.toString().replaceAll("\\s+", " ").trim();
+        String chosen = cleanUtf16.length() > cleanAscii.length() ? cleanUtf16 : cleanAscii;
+
+        return chosen.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]", " ").replaceAll("\\s+", " ").trim();
     }
 
     public String extractTextFromPlainText(byte[] bytes, String fileName) {

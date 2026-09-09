@@ -40,9 +40,11 @@ export default function AnalyzingPage() {
             : 85
         );
 
-        // Persist Candidate Evaluation to Oracle Database as a fresh record
-        const userEmail = resumeProfile?.email || user?.email || state.userEmail || 'candidate@evalai.com';
-        const userName = resumeProfile?.candidateName || state.userName || 'Candidate';
+        // Persist Candidate Evaluation to Oracle Database as a fresh record for the active user
+        const userEmail = user?.email || resumeProfile?.email || state.userEmail || 'candidate@evalai.com';
+        const userName = resumeProfile?.candidateName && resumeProfile.candidateName !== 'Candidate' 
+          ? resumeProfile.candidateName 
+          : (user?.name || state.userName || 'Candidate');
         const targetRole = state.jobRole?.title || 'Fullstack Software Engineer';
         const companyName = state.jobRole?.company || 'Standard Corporate Track';
 
@@ -86,9 +88,13 @@ export default function AnalyzingPage() {
         setStages(prev => prev.map(s => s.id === 2 ? { ...s, status: 'done' } : (s.id === 3 ? { ...s, status: 'running' } : s)));
         setCurrentStage(3);
 
-        // Fetch GitHub
+        // Fetch GitHub / Web Profile Data
         if (resumeProfile?.links?.github) {
-          const ghData = await githubClient.fetchUserData(resumeProfile.links.github);
+          const ghData = await githubClient.fetchUserData(resumeProfile.links.github, {
+            candidateName: resumeProfile.candidateName || user?.name || "Candidate",
+            skills: resumeProfile.skills || [],
+            projects: resumeProfile.projects || []
+          });
           if (ghData) {
             dispatch({ type: 'SET_GITHUB_DATA', payload: ghData });
           }

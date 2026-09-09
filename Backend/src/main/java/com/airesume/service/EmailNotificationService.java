@@ -73,7 +73,7 @@ public class EmailNotificationService {
             helper.setTo(recipientEmail);
             helper.setSubject("Your Verification Code: " + otpCode + " — EVAL AI Account Signup");
 
-            String htmlBody = buildOtpEmailTemplate(userName, otpCode);
+            String htmlBody = buildOtpEmailTemplate(userName, otpCode, "Account Registration");
             helper.setText(htmlBody, true);
 
             mailSender.send(message);
@@ -86,7 +86,42 @@ public class EmailNotificationService {
         }
     }
 
-    private String buildOtpEmailTemplate(String name, String otp) {
+    public boolean sendPasswordResetOtp(String recipientEmail, String userName, String otpCode) {
+        if (recipientEmail == null || recipientEmail.isBlank()) {
+            return false;
+        }
+
+        try {
+            if (mailSender == null) {
+                System.out.println("JavaMailSender not configured, Password Reset OTP for " + recipientEmail + " is: " + otpCode);
+                return true;
+            }
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(senderEmail, "EVAL AI Security");
+            helper.setTo(recipientEmail);
+            helper.setSubject("Password Reset Code: " + otpCode + " — EVAL AI Security");
+
+            String htmlBody = buildOtpEmailTemplate(userName, otpCode, "Password Reset");
+            helper.setText(htmlBody, true);
+
+            mailSender.send(message);
+            System.out.println("Successfully dispatched Password Reset OTP email to: " + recipientEmail);
+            return true;
+        } catch (Exception e) {
+            System.err.println("Failed to send Password Reset OTP email to " + recipientEmail + ": " + e.getMessage());
+            System.out.println("DEVELOPMENT FALLBACK: Password Reset OTP for " + recipientEmail + " is: " + otpCode);
+            return true;
+        }
+    }
+
+    private String buildOtpEmailTemplate(String name, String otp, String purpose) {
+        String actionText = "Account Registration".equalsIgnoreCase(purpose) 
+                ? "complete your account registration" 
+                : "reset your account password";
+
         return "<!DOCTYPE html>"
                 + "<html>"
                 + "<head>"
@@ -96,6 +131,7 @@ public class EmailNotificationService {
                 + ".container { max-width: 500px; margin: 0 auto; background: #0e111a; border: 1px solid #d4af37; border-radius: 12px; padding: 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; }"
                 + ".logo { color: #d4af37; font-size: 22px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; }"
                 + ".title { font-size: 18px; color: #ffffff; margin-bottom: 12px; font-weight: 600; }"
+                + ".purpose-badge { display: inline-block; background: rgba(212,175,55,0.15); color: #f5df88; border: 1px solid rgba(212,175,55,0.4); padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-bottom: 15px; font-weight: 600; }"
                 + ".content { font-size: 14px; line-height: 1.6; color: #cbd5e1; margin-bottom: 25px; }"
                 + ".otp-box { background: rgba(212,175,55,0.15); border: 2px dashed #d4af37; border-radius: 10px; padding: 18px 24px; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #f5df88; margin: 20px auto; max-width: 260px; }"
                 + ".footer { font-size: 12px; color: #64748b; margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px; }"
@@ -104,16 +140,17 @@ public class EmailNotificationService {
                 + "<body>"
                 + "<div class='container'>"
                 + "<div class='logo'>◆ EVAL AI SECURITY ◆</div>"
-                + "<div class='title'>Hello " + (name != null && !name.isBlank() ? name : "there") + ",</div>"
+                + "<div class='purpose-badge'>" + purpose.toUpperCase() + " REQUEST</div>"
+                + "<div class='title'>Hello " + (name != null && !name.isBlank() ? name : "User") + ",</div>"
                 + "<div class='content'>"
-                + "Thank you for registering with EVAL AI. Use the 6-digit verification code below to complete your account registration:"
+                + "Use the 6-digit verification code below to " + actionText + ":"
                 + "</div>"
                 + "<div class='otp-box'>" + otp + "</div>"
                 + "<div class='content' style='font-size: 13px; color: #94a3b8;'>"
                 + "This OTP is valid for <strong>10 minutes</strong>. Do not share this code with anyone."
                 + "</div>"
                 + "<div class='footer'>"
-                + "EVAL AI Resume Intelligence Platform • If you did not request this code, please ignore this email."
+                + "EVAL AI Resume Intelligence Platform • If you did not request this code, please secure your account immediately."
                 + "</div>"
                 + "</div>"
                 + "</body>"

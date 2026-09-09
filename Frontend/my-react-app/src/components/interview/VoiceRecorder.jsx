@@ -2,16 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { Mic, MicOff, Volume2, AlertCircle, Edit3, CheckCircle } from 'lucide-react';
 import { speechService } from '../../services/speechService';
 
-export default function VoiceRecorder({ onTranscriptUpdate, initialTranscript = "", disabled = false }) {
+export default function VoiceRecorder({ onTranscriptUpdate, initialTranscript = "", currentIndex = 0, disabled = false }) {
   const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState(initialTranscript);
+  const [transcript, setTranscript] = useState(initialTranscript || "");
   const [isInterim, setIsInterim] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isManualEdit, setIsManualEdit] = useState(!speechService.isSupported);
 
+  const prevIndexRef = React.useRef(currentIndex);
+  const isRecordingRef = React.useRef(isRecording);
+  isRecordingRef.current = isRecording;
+
+  // Only reset/sync transcript when moving to a DIFFERENT question index
   useEffect(() => {
-    setTranscript(initialTranscript);
-  }, [initialTranscript]);
+    if (prevIndexRef.current !== currentIndex) {
+      if (isRecordingRef.current) {
+        speechService.stop();
+        setIsRecording(false);
+      }
+      setTranscript(initialTranscript || "");
+      prevIndexRef.current = currentIndex;
+    }
+  }, [currentIndex, initialTranscript]);
+
+  // Clean up on component unmount
+  useEffect(() => {
+    return () => {
+      speechService.stop();
+    };
+  }, []);
 
   const toggleRecording = () => {
     if (disabled) return;
@@ -38,7 +57,8 @@ export default function VoiceRecorder({ onTranscriptUpdate, initialTranscript = 
         },
         (listening) => {
           setIsRecording(listening);
-        }
+        },
+        transcript // pass existing transcript so new speech appends naturally
       );
     }
   };

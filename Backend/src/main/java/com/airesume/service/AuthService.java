@@ -236,6 +236,138 @@ public class AuthService {
         return result;
     }
 
+    @Transactional
+    public Map<String, Object> sendForgotPasswordOtp(String email) {
+        Map<String, Object> result = new HashMap<>();
+
+        if (email == null || email.trim().isEmpty() || !email.contains("@")) {
+            result.put("success", false);
+            result.put("message", "Please enter a valid email address.");
+            return result;
+        }
+
+        String cleanEmail = email.trim().toLowerCase();
+        Optional<User> optUser = userRepository.findByEmailIgnoreCase(cleanEmail);
+
+        // 1. Fetch the email is registered in our database
+        if (optUser.isEmpty()) {
+            result.put("success", false);
+            result.put("message", "No account found with this email address. Please check your email or create a new account.");
+            return result;
+        }
+
+        User user = optUser.get();
+
+        // 2. Generate 6-digit cryptographic OTP code
+        int code = 100000 + RANDOM.nextInt(900000);
+        String otpCode = String.valueOf(code);
+
+        // 3. Save OTP in DB with 10-minute expiry
+        OtpToken token = OtpToken.builder()
+                .email(cleanEmail)
+                .otpCode(otpCode)
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .isVerified(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+        otpTokenRepository.save(token);
+
+        // 4. Dispatch Password Reset OTP Email
+        boolean sent = emailNotificationService.sendPasswordResetOtp(cleanEmail, user.getName(), otpCode);
+
+        result.put("success", true);
+        result.put("message", "A 6-digit password reset code has been sent to " + cleanEmail);
+        result.put("email", cleanEmail);
+        result.put("emailSent", sent);
+        return result;
+    }
+
+    @Transactional
+    public Map<String, Object> verifyForgotPasswordOtp(String email, String otpCode) {
+        Map<String, Object> result = new HashMap<>();
+
+        if (email == null || otpCode == null || otpCode.trim().isEmpty()) {
+            result.put("success", false);
+            result.put("message", "Email and OTP code are required.");
+            return result;
+        }
+
+        String cleanEmail = email.trim().toLowerCase();
+        String cleanOtp = otpCode.trim();
+
+        Optional<OtpToken> optToken = otpTokenRepository.findTopByEmailIgnoreCaseAndOtpCodeAndIsVerifiedFalseOrderByCreatedAtDesc(cleanEmail, cleanOtp);
+
+        if (optToken.isEmpty()) {
+            result.put("success", false);
+            result.put("message", "Invalid verification code. Please check and try again.");
+            return result;
+        }
+
+        OtpToken token = optToken.get();
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            result.put("success", false);
+            result.put("message", "Verification code has expired. Please request a new code.");
+            return result;
+        }
+
+        token.setIsVerified(true);
+        otpTokenRepository.save(token);
+
+        result.put("success", true);
+        result.put("message", "OTP verified successfully. You can now set your new password.");
+        return result;
+    }
+
+    @Transactional
+    public Map<String, Object> resetPassword(String email, String otpCode, String newPassword) {
+        Map<String, Object> result = new HashMap<>();
+
+        if (email == null || email.trim().isEmpty()) {
+            result.put("success", false);
+            result.put("message", "Email address is required.");
+            return result;
+        }
+
+        String cleanEmail = email.trim().toLowerCase();
+        Optional<User> optUser = userRepository.findByEmailIgnoreCase(cleanEmail);
+
+        if (optUser.isEmpty()) {
+            result.put("success", false);
+            result.put("message", "User account not found.");
+            return result;
+        }
+
+        // 1. Validate Password Strength
+        if (newPassword == null || !PASSWORD_PATTERN.matcher(newPassword).matches()) {
+            result.put("success", false);
+            result.put("message", "Password must be at least 8 characters and contain at least 1 uppercase letter, 1 number, and 1 special character.");
+            return result;
+        }
+
+        // 2. Verify OTP was confirmed
+        Optional<OtpToken> optToken = otpTokenRepository.findTopByEmailIgnoreCaseAndIsVerifiedTrueOrderByCreatedAtDesc(cleanEmail);
+        if (optToken.isEmpty()) {
+            result.put("success", false);
+            result.put("message", "Please verify your email with the OTP code first.");
+            return result;
+        }
+
+        // 3. Update User Password in DB
+        User user = optUser.get();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        // 4. Invalidate used OTP tokens
+        try {
+            otpTokenRepository.deleteByEmailIgnoreCase(cleanEmail);
+        } catch (Exception ignore) {}
+
+        result.put("success", true);
+        result.put("message", "Password reset successfully! You can now sign in with your new password.");
+        return result;
+    }
+
     public Optional<User> getUserFromToken(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return Optional.empty();

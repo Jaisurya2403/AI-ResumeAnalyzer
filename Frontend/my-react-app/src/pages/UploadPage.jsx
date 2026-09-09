@@ -10,7 +10,6 @@ export default function UploadPage() {
   const { isAuthenticated, user, openAuthModal } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
-  
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -134,7 +133,7 @@ export default function UploadPage() {
           margin: '0 auto 2rem',
           lineHeight: '1.6'
         }}>
-          Upload your resume in any format (PDF, Word DOCX/DOC, TXT, or Image) to extract deep competency metrics, calibrate dynamic 4-round interview questions, and receive instant AI grading.
+          Upload your resume to extract deep competency metrics, calibrate dynamic 4-round interview questions, and receive instant AI grading.
         </p>
       </div>
 
@@ -180,10 +179,10 @@ export default function UploadPage() {
         </div>
 
         <h3 className="font-royal" style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '0.5rem' }}>
-          {isLoading ? "Reading and Extracting Resume Document..." : "Drop your Resume here (PDF, DOCX, DOC, TXT, Image)"}
+          {isLoading ? "Reading and Extracting Resume Document..." : "Drop your Resume here"}
         </h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-          Supports all resume file formats • Powered by Qwen 2.5 on Groq {!isAuthenticated && "• Sign-in required on upload"}
+          Supports Word (.docx, .doc), PDF, Images, Text • Powered by Qwen 2.5 on Groq {!isAuthenticated && "• Sign-in required on upload"}
         </p>
 
         <button

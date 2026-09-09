@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Award, Sparkles, CheckCircle2, TrendingUp, Compass, Share2, Printer, RotateCcw, ArrowRight, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Award, Sparkles, CheckCircle2, TrendingUp, Compass, Share2, Printer, RotateCcw, ArrowRight, ShieldCheck, ChevronRight, ShieldAlert, AlertTriangle, Camera, Mic } from 'lucide-react';
 import { triggerGoldConfetti } from '../utils/confetti';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -251,6 +251,210 @@ export default function FinalReportPage() {
           ))}
         </div>
       </div>
+
+      {/* Round 4 Spoken English & Technical Answer Assessment */}
+      {(() => {
+        const r4Data = state.roundAnswers?.round4;
+        const subScores = r4Data?.[0]?.subScores || {};
+        const sentenceFraming = subScores.sentenceFraming ?? Math.min(95, Math.max(0, scores.round4));
+        const englishSkills = subScores.englishSkills ?? Math.min(95, Math.max(0, scores.round4));
+        const answerRelevance = subScores.answerRelevance ?? Math.min(95, Math.max(0, scores.round4));
+        const notes = subScores.notes || "Spoken responses were converted from microphone voice input and evaluated for sentence framing, linguistic proficiency, and technical accuracy.";
+
+        return (
+          <div className="royal-glass-card solid-border" style={{
+            padding: '2rem 2.5rem',
+            marginBottom: '2rem',
+            background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(10, 13, 20, 0.95) 100%)',
+            borderColor: 'rgba(212, 175, 55, 0.35)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: 'rgba(212, 175, 55, 0.15)',
+                  border: '1px solid var(--gold-light)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Mic size={22} color="var(--gold-light)" />
+                </div>
+                <div>
+                  <h3 className="font-royal" style={{ fontSize: '1.2rem', color: '#fff', margin: 0 }}>
+                    Round 4: Voice Speech & Linguistic Competency Analysis
+                  </h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: 0 }}>
+                    AI analysis of sentence framing, English proficiency, and answer accuracy from microphone voice transcripts
+                  </p>
+                </div>
+              </div>
+
+              <span className="badge-gold" style={{ fontSize: '0.85rem', padding: '0.4rem 1rem' }}>
+                Voice Score: {scores.round4}%
+              </span>
+            </div>
+
+            {/* Linguistic Metrics Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: 'rgba(5, 7, 12, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
+                  <span style={{ color: '#fff', fontWeight: 600 }}>Sentence Framing & Grammar</span>
+                  <span style={{ color: 'var(--gold-light)', fontWeight: 700 }}>{sentenceFraming}%</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: `${sentenceFraming}%`, height: '100%', background: 'var(--grad-gold)' }} />
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(5, 7, 12, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
+                  <span style={{ color: '#fff', fontWeight: 600 }}>English Vocabulary & Skills</span>
+                  <span style={{ color: 'var(--gold-light)', fontWeight: 700 }}>{englishSkills}%</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: `${englishSkills}%`, height: '100%', background: 'var(--grad-gold)' }} />
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(5, 7, 12, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
+                  <span style={{ color: '#fff', fontWeight: 600 }}>Answer Relevance & Accuracy</span>
+                  <span style={{ color: 'var(--gold-light)', fontWeight: 700 }}>{answerRelevance}%</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: `${answerRelevance}%`, height: '100%', background: 'var(--grad-gold)' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* AI Evaluator Critique */}
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.55', margin: 0, background: 'rgba(5, 7, 12, 0.5)', padding: '0.85rem 1.1rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+              💬 <strong style={{ color: '#fff' }}>AI Linguistic & Technical Feedback:</strong> {notes}
+            </p>
+          </div>
+        );
+      })()}
+
+      {/* AI Proctoring & Malpractice Integrity Dossier */}
+      {(() => {
+        const malpracticeScore = state.malpracticeScore || 0;
+        const violations = state.proctoringViolations || [];
+        const isCheating = malpracticeScore > 50;
+
+        return (
+          <div className="royal-glass-card solid-border" style={{
+            padding: '2rem 2.5rem',
+            marginBottom: '2rem',
+            background: isCheating
+              ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(10, 13, 20, 0.95) 100%)'
+              : 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(10, 13, 20, 0.95) 100%)',
+            borderColor: isCheating ? 'rgba(239, 68, 68, 0.5)' : 'rgba(16, 185, 129, 0.4)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: isCheating ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                  border: `1px solid ${isCheating ? '#ef4444' : '#10b981'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {isCheating ? <ShieldAlert size={22} color="#f87171" /> : <ShieldCheck size={22} color="#34d399" />}
+                </div>
+                <div>
+                  <h3 className="font-royal" style={{ fontSize: '1.2rem', color: '#fff', margin: 0 }}>
+                    MediaPipe AI Proctoring & Integrity Dossier
+                  </h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: 0 }}>
+                    Live webcam biometric tracking, multi-face detection, head pose yaw/pitch & tab switch verification
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div>
+                {isCheating ? (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '0.45rem 1rem',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    border: '1.5px solid #ef4444',
+                    color: '#fca5a5',
+                    fontSize: '0.88rem',
+                    fontWeight: 800
+                  }}>
+                    <AlertTriangle size={15} color="#ef4444" /> CHEATING FLAGGED ({malpracticeScore} pts / 50 limit)
+                  </span>
+                ) : (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '0.45rem 1rem',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    border: '1.5px solid #10b981',
+                    color: '#6ee7b7',
+                    fontSize: '0.88rem',
+                    fontWeight: 800
+                  }}>
+                    <ShieldCheck size={15} color="#10b981" /> VERIFIED CLEAN INTEGRITY ({malpracticeScore}/50 pts)
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Integrity Summary Details */}
+            <p style={{
+              color: isCheating ? '#fecaca' : 'var(--text-secondary)',
+              fontSize: '0.9rem',
+              lineHeight: '1.55',
+              marginBottom: violations.length > 0 ? '1rem' : 0
+            }}>
+              {isCheating
+                ? "⚠️ Warning: The background malpractice flag score exceeded the threshold of 50 points during the interview. Excessive looking away, tab switching, or absent face tracking was detected."
+                : "🛡️ Candidate maintained consistent face alignment and gaze tracking throughout all 4 interview rounds. Malpractice flag score remained within acceptable limits (<= 50)."}
+            </p>
+
+            {/* Recorded Violations Log */}
+            {violations.length > 0 && (
+              <div style={{
+                background: 'rgba(5, 7, 12, 0.65)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '8px',
+                padding: '0.85rem 1.25rem',
+                marginTop: '0.75rem'
+              }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--gold-light)', marginBottom: '0.5rem' }}>
+                  Recorded Proctoring Events ({violations.length} total):
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  {violations.slice(0, 4).map((v, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: '#cbd5e1' }}>
+                      <span>{v.message}</span>
+                      <span style={{ color: '#f87171', fontWeight: 700 }}>+{v.points} pts ({v.timestamp})</span>
+                    </div>
+                  ))}
+                  {violations.length > 4 && (
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                      + {violations.length - 4} additional minor events recorded
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Grid: Recommendations & Alternate Roles */}
       <div className="grid-2">

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, Code, Layers, Sparkles, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Code, Layers, Sparkles, CheckCircle2, ShieldAlert, Clock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { aiClient } from '../services/aiClient';
 import ProgressBar from '../components/common/ProgressBar';
+import ProctoringCamera from '../components/interview/ProctoringCamera';
 
 export default function Round3Page() {
   const { state, dispatch } = useApp();
@@ -14,6 +15,7 @@ export default function Round3Page() {
   const [answers, setAnswers] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isScoring, setIsScoring] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(600); // 10 mins
 
   const round2Score = state.roundScores?.round2 ?? 75;
   const isAdvanced = round2Score >= 70;
@@ -22,6 +24,26 @@ export default function Round3Page() {
   const jobRole = state.jobRole || { title: "Full Stack Engineer" };
   const projects = state.resumeProfile?.projects || [];
   const skills = state.resumeProfile?.skills || [];
+
+  // Ensure Fullscreen mode during assessment
+  useEffect(() => {
+    const enterFS = async () => {
+      try {
+        if (!document.fullscreenElement) {
+          if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen().catch(() => {});
+          } else if (document.documentElement.webkitRequestFullscreen) {
+            await document.documentElement.webkitRequestFullscreen().catch(() => {});
+          }
+        }
+      } catch (e) {}
+    };
+    enterFS();
+    window.addEventListener('click', enterFS, { once: true });
+    return () => {
+      window.removeEventListener('click', enterFS);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -47,6 +69,22 @@ export default function Round3Page() {
       isMounted = false;
     };
   }, []);
+
+  // Timer countdown
+  useEffect(() => {
+    if (isLoading || isScoring) return;
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isLoading, isScoring, questions, answers]);
 
   const currentQ = questions[currentIndex];
 
@@ -153,6 +191,9 @@ export default function Round3Page() {
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+      {/* MediaPipe AI Proctoring Camera HUD with Voice Activity Detection */}
+      <ProctoringCamera enableAudioDetection={true} />
+
       {/* Progress Track */}
       <ProgressBar currentRound={3} completedScores={state.roundScores} />
 
@@ -182,9 +223,26 @@ export default function Round3Page() {
 
       {/* Question Card */}
       <div className="royal-glass-card solid-border" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <span className="badge-gold">Scenario {currentIndex + 1} of {questions.length}</span>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>System Architecture & Implementation</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              color: timeRemaining < 60 ? 'var(--accent-crimson)' : 'var(--gold-light)',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              background: 'rgba(5, 7, 10, 0.6)',
+              padding: '0.3rem 0.75rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid rgba(212, 175, 55, 0.2)'
+            }}>
+              <Clock size={15} />
+              <span>{Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}</span>
+            </div>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>System Architecture & Implementation</span>
+          </div>
         </div>
 
         <h2 style={{ fontSize: '1.25rem', color: '#fff', fontWeight: 600, lineHeight: '1.5', marginBottom: '1.5rem' }}>

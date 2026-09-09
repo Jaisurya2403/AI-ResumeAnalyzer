@@ -52,7 +52,9 @@ public class AssessmentController {
         resp.put("expiryDate", c.getExpiryDate() != null ? c.getExpiryDate().toString() : null);
         resp.put("skills", c.getSkills());
         resp.put("status", c.getStatus().name());
-        resp.put("alreadyCompleted", c.getStatus().name().equals("COMPLETED"));
+        resp.put("alreadyCompleted", c.getStatus() == com.airesume.model.CandidateStatus.COMPLETED);
+        resp.put("isDisqualified", c.getStatus() == com.airesume.model.CandidateStatus.DISQUALIFIED);
+        resp.put("completedAt", c.getCompletedAt() != null ? c.getCompletedAt().toString() : null);
 
         return ResponseEntity.ok(resp);
     }
@@ -65,6 +67,12 @@ public class AssessmentController {
         Optional<Candidate> opt = assessmentEvaluationService.getCandidateByToken(token);
         if (opt.isPresent()) {
             Candidate c = opt.get();
+            if (c.getStatus() == com.airesume.model.CandidateStatus.COMPLETED || c.getStatus() == com.airesume.model.CandidateStatus.DISQUALIFIED) {
+                Map<String, String> err = new HashMap<>();
+                err.put("status", c.getStatus().name());
+                err.put("message", "This assessment has already been finalized and cannot be retaken.");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(err);
+            }
             if (c.getExpiryDate() != null && java.time.LocalDateTime.now().isAfter(c.getExpiryDate())) {
                 Map<String, String> err = new HashMap<>();
                 err.put("status", "EXPIRED");

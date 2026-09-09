@@ -12,8 +12,15 @@ import java.util.Optional;
 @Repository
 public interface CandidateRepository extends JpaRepository<Candidate, Long> {
     Optional<Candidate> findByToken(String token);
+
     @Query("SELECT c FROM Candidate c WHERE LOWER(c.email) = LOWER(:email) ORDER BY c.createdAt DESC")
     List<Candidate> findByEmailIgnoreCaseOrderByCreatedAtDesc(@Param("email") String email);
+
+    @Query("SELECT c FROM Candidate c WHERE LOWER(c.name) = LOWER(:name) ORDER BY c.createdAt DESC")
+    List<Candidate> findByNameIgnoreCaseOrderByCreatedAtDesc(@Param("name") String name);
+
+    @Query("SELECT c FROM Candidate c WHERE LOWER(c.email) = LOWER(:email) OR LOWER(c.name) = LOWER(:name) ORDER BY c.createdAt DESC")
+    List<Candidate> findByEmailOrNameIgnoreCase(@Param("email") String email, @Param("name") String name);
 
     @Query("SELECT c FROM Candidate c ORDER BY CASE WHEN c.overallScore IS NOT NULL THEN 0 ELSE 1 END ASC, c.overallScore DESC, c.resumeScore DESC, c.createdAt DESC")
     List<Candidate> findAllOrderByOverallScoreDesc();
