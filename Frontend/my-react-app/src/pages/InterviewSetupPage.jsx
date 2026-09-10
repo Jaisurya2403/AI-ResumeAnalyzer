@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Briefcase, Cpu, Code2, ArrowRight, ShieldCheck, CheckCircle, Sparkles, Mic, Layers, Clock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { ROLE_PRESETS, DOMAIN_OPTIONS, detectDomainFromRole } from '../data/rolePresets';
+import BackButton from '../components/common/BackButton';
 
 export default function InterviewSetupPage() {
   const { state, dispatch } = useApp();
@@ -57,6 +58,11 @@ export default function InterviewSetupPage() {
 
   return (
     <div style={{ maxWidth: '980px', margin: '0 auto', paddingTop: '1rem' }}>
+      {/* Top Left Navigation */}
+      <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1.25rem' }}>
+        <BackButton label="Back to Results" />
+      </div>
+
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
         <span className="badge-gold" style={{ marginBottom: '1rem' }}>

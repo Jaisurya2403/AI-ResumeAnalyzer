@@ -207,10 +207,13 @@ html, body {
   padding: 0.25rem 0.75rem;
   border-radius: var(--radius-full);
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .badge-emerald {
@@ -220,7 +223,13 @@ html, body {
   padding: 0.25rem 0.75rem;
   border-radius: var(--radius-full);
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .badge-crimson {
@@ -230,7 +239,13 @@ html, body {
   padding: 0.25rem 0.75rem;
   border-radius: var(--radius-full);
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Keyframe Animations */
@@ -353,5 +368,44 @@ html, body {
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-4 {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Responsive Navigation Styles */
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none !important;
+  }
+  .mobile-nav-toggle {
+    display: flex !important;
+  }
+  .main-content {
+    padding: 5rem 1rem 3rem !important;
+  }
+  .font-royal {
+    letter-spacing: 0.01em;
+  }
+  h1.font-royal {
+    font-size: 1.85rem !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .desktop-nav {
+    display: flex !important;
+  }
+  .mobile-nav-toggle {
+    display: none !important;
+  }
+}
+
+/* Mobile Friendly Overflows & Containers */
+@media (max-width: 640px) {
+  .royal-glass-card {
+    padding: 1.25rem !important;
+  }
+  .badge-gold {
+    font-size: 0.72rem !important;
+    padding: 0.25rem 0.6rem !important;
   }
 }

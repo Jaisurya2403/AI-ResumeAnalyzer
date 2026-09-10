@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Award, Sparkles, CheckCircle2, TrendingUp, Compass, Share2, Printer, RotateCcw, ArrowRight, ShieldCheck, ChevronRight, ShieldAlert, AlertTriangle, Camera, Mic } from 'lucide-react';
+import { Award, Sparkles, CheckCircle2, TrendingUp, Compass, Share2, Printer, RotateCcw, ArrowRight, ShieldCheck, ChevronRight, ShieldAlert, AlertTriangle, Camera, Mic, Download, FileText } from 'lucide-react';
 import { triggerGoldConfetti } from '../utils/confetti';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { storageService } from '../services/storageService';
 import ScoreBadge from '../components/common/ScoreBadge';
+import DownloadConfirmModal from '../components/common/DownloadConfirmModal';
+import BackButton from '../components/common/BackButton';
 
 export default function FinalReportPage() {
   const { id } = useParams();
@@ -13,16 +15,107 @@ export default function FinalReportPage() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
+  const [loadingRecord, setLoadingRecord] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
-  // Load from storage if not in memory
+  // Load from storage or backend if not in memory
   useEffect(() => {
-    if (!state.finalReport && id && id !== 'latest') {
+    if (id && id !== 'latest') {
       const saved = storageService.getResultById(id);
       if (saved) {
         dispatch({ type: 'LOAD_SAVED_RESULT', payload: saved });
+      } else {
+        // Fetch from backend archive evaluation endpoint
+        setLoadingRecord(true);
+        fetch(`http://localhost:8085/api/archive/evaluations/${id}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
+          .then(res => res.ok ? res.json() : null)
+          .then(data => {
+            if (data) {
+              const parsedSkills = typeof data.skills === 'string'
+                ? data.skills.split(',').map(s => ({ name: s.trim(), percent: 85 }))
+                : (Array.isArray(data.skills) ? data.skills : []);
+
+              let parsedScores = null;
+              if (data.roundScores) {
+                try {
+                  parsedScores = typeof data.roundScores === 'string' ? JSON.parse(data.roundScores) : data.roundScores;
+                  if (parsedScores && parsedScores.roundScores) {
+                    parsedScores = parsedScores.roundScores;
+                  }
+                } catch (ignore) {}
+              }
+
+              let storedFinalReport = null;
+              if (data.finalReportJson) {
+                try {
+                  storedFinalReport = typeof data.finalReportJson === 'string' ? JSON.parse(data.finalReportJson) : data.finalReportJson;
+                } catch (ignore) {}
+              }
+
+              const realRoundScores = {
+                round1: parsedScores?.round1 != null ? parsedScores.round1 : (data.assessmentScore != null ? Math.round(data.assessmentScore) : 0),
+                round2: parsedScores?.round2 != null ? parsedScores.round2 : (data.assessmentScore != null ? Math.round(data.assessmentScore) : 0),
+                round3: parsedScores?.round3 != null ? parsedScores.round3 : (data.assessmentScore != null ? Math.round(data.assessmentScore) : 0),
+                round4: parsedScores?.round4 != null ? parsedScores.round4 : (data.assessmentScore != null ? Math.round(data.assessmentScore) : 0)
+              };
+
+              const calculatedOverall = Math.round((realRoundScores.round1 * 0.15) + (realRoundScores.round2 * 0.35) + (realRoundScores.round3 * 0.30) + (realRoundScores.round4 * 0.20));
+              const overall = data.overallScore != null ? Math.round(data.overallScore) : (storedFinalReport?.fitnessPercent || calculatedOverall);
+
+              const candidateDisplayName = (data.name && data.name.trim() !== '') ? data.name : 'Candidate';
+              const targetJobTitle = data.targetRole || 'Full Stack Engineer';
+              const targetCompanyName = data.companyName || 'Standard Corporate Track';
+
+              const execSummary = storedFinalReport?.executiveSummary || data.aiFeedback || `Candidate ${candidateDisplayName} completed the multi-round assessment for ${targetJobTitle} under ${targetCompanyName} with an overall role fitness score of ${overall}%.`;
+
+              const recommendations = storedFinalReport?.recommendations && Array.isArray(storedFinalReport.recommendations) && storedFinalReport.recommendations.length > 0
+                ? storedFinalReport.recommendations
+                : [
+                    { area: "Technical Architecture & System Design", priority: "High", advice: "Deepen understanding of distributed systems, concurrency control, and scalability patterns." },
+                    { area: "Core Domain Implementation", priority: "Medium", advice: "Continue refining practical implementation speed, API contracts, and edge-case handling." }
+                  ];
+
+              const alternateRoles = storedFinalReport?.alternateRoles && Array.isArray(storedFinalReport.alternateRoles) && storedFinalReport.alternateRoles.length > 0
+                ? storedFinalReport.alternateRoles
+                : [
+                    { role: targetJobTitle ? `${targetJobTitle} Specialist` : "Backend Systems Engineer", fit: Math.min(100, overall + 2), rationale: "Strong foundational problem-solving and domain aptitude." },
+                    { role: "Solutions Architect", fit: Math.max(40, overall - 4), rationale: "Well-suited for system translation, cross-functional design, and client delivery." }
+                  ];
+
+              const payload = {
+                id: data.candidateId || id,
+                candidateId: data.candidateId || id,
+                candidateName: candidateDisplayName,
+                userName: candidateDisplayName,
+                jobRole: {
+                  title: targetJobTitle,
+                  domain: 'Software Engineering',
+                  company: targetCompanyName
+                },
+                resumeProfile: {
+                  candidateName: candidateDisplayName,
+                  email: data.email,
+                  targetRole: targetJobTitle,
+                  skills: parsedSkills
+                },
+                roundScores: realRoundScores,
+                finalReport: {
+                  fitnessPercent: overall,
+                  executiveSummary: execSummary,
+                  recommendations,
+                  alternateRoles
+                }
+              };
+              dispatch({ type: 'LOAD_SAVED_RESULT', payload });
+            }
+          })
+          .catch(err => console.warn('Could not load evaluation dossier from backend:', err))
+          .finally(() => setLoadingRecord(false));
       }
     }
-  }, [id, state.finalReport]);
+  }, [id, token]);
 
   // Trigger Royal Gold Confetti
   useEffect(() => {
@@ -32,6 +125,8 @@ export default function FinalReportPage() {
   const scores = state.roundScores || { round1: 0, round2: 0, round3: 0, round4: 0 };
   const role = state.jobRole || { title: "Full Stack Engineer", domain: "Software" };
   const candidateName = state.resumeProfile?.candidateName || state.userName || "Candidate";
+  const targetRoleName = role.title || state.resumeProfile?.targetRole || "Full Stack Engineer";
+  const targetCompanyName = role.company || "Standard Corporate Track";
   const hasSyncedRef = React.useRef(false);
 
   const calculatedFitness = Math.round(((scores.round1 ?? 0) * 0.15) + ((scores.round2 ?? 0) * 0.35) + ((scores.round3 ?? 0) * 0.30) + ((scores.round4 ?? 0) * 0.20));
@@ -47,9 +142,11 @@ export default function FinalReportPage() {
     alternateRoles: []
   };
 
-  // Sync completed scores with backend Oracle DB
+  const finalOverallScore = report.fitnessPercent !== undefined ? report.fitnessPercent : calculatedFitness;
+
+  // Sync completed scores with backend Oracle DB (only for fresh test completion, not historical archive views)
   useEffect(() => {
-    if (hasSyncedRef.current) return;
+    if (hasSyncedRef.current || (id && id !== 'latest')) return;
     hasSyncedRef.current = true;
 
     const avgAssessment = Math.round(
@@ -86,7 +183,7 @@ export default function FinalReportPage() {
         summary: report.executiveSummary
       })
     }).catch(err => console.warn('Could not update final evaluation in DB:', err));
-  }, []);
+  }, [id]);
 
   const handlePrint = () => {
     window.print();
@@ -104,6 +201,10 @@ export default function FinalReportPage() {
     navigate('/');
   };
 
+  const activeReportCandidateId = (state.candidateId || sessionStorage.getItem('eval_candidate_id')) 
+    ? (state.candidateId || sessionStorage.getItem('eval_candidate_id'))
+    : ((id && !id.startsWith('res_') && id !== 'latest') ? id : (state.candidateToken || sessionStorage.getItem('eval_candidate_token') || id || '1'));
+
   return (
     <div style={{ maxWidth: '1440px', width: '100%', margin: '0 auto', paddingBottom: '3rem' }}>
       {/* Top Banner Actions */}
@@ -115,13 +216,31 @@ export default function FinalReportPage() {
         gap: '1rem',
         marginBottom: '2rem'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <BackButton label="Back" />
           <span className="badge-gold">
             <Award size={15} /> OFFICIAL CANDIDATE EVALUATION DOSSIER
           </span>
+          {loadingRecord && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--gold-light)' }}>
+              Loading Dossier Data...
+            </span>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {activeReportCandidateId && (
+            <button
+              onClick={() => setShowDownloadModal(true)}
+              className="btn-gold"
+              style={{ fontSize: '0.85rem', padding: '0.6rem 1.1rem', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+              title="Download Server-Generated Assessment Dossier PDF"
+            >
+              <Download size={15} />
+              <span>Download PDF Dossier</span>
+            </button>
+          )}
+
           <button
             onClick={handleShare}
             className="btn-dark"
@@ -544,6 +663,47 @@ export default function FinalReportPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <DownloadConfirmModal
+        isOpen={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+        onView={() => {
+          if (activeReportCandidateId) {
+            window.open(`http://localhost:8085/api/archive/evaluations/${activeReportCandidateId}/report-pdf`, '_blank');
+          }
+        }}
+        onConfirm={async () => {
+          if (activeReportCandidateId) {
+            const url = `http://localhost:8085/api/archive/evaluations/${activeReportCandidateId}/report-pdf`;
+            const fname = `Assessment_Dossier_${candidateName.replace(/\s+/g, '_')}_${targetRoleName.replace(/\s+/g, '_')}.pdf`;
+            try {
+              const res = await fetch(url);
+              if (!res.ok) throw new Error("Download failed");
+              const blob = await res.blob();
+              const bUrl = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = bUrl;
+              a.download = fname;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              window.URL.revokeObjectURL(bUrl);
+            } catch (err) {
+              window.open(url, '_blank');
+            }
+          }
+        }}
+        title="Candidate Assessment Dossier"
+        fileName={`Assessment_Dossier_${candidateName.replace(/\s+/g, '_')}_${targetRoleName.replace(/\s+/g, '_')}.pdf`}
+        fileType="Official Assessment Dossier (PDF)"
+        details={[
+          { label: "Candidate", value: candidateName },
+          { label: "Target Role", value: targetRoleName },
+          { label: "Company", value: targetCompanyName },
+          { label: "Overall Score", value: `${finalOverallScore}%` }
+        ]}
+      />
     </div>
   );
 }

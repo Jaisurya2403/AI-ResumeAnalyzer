@@ -8,6 +8,7 @@ import VoiceRecorder from '../components/interview/VoiceRecorder';
 import { getRandomAptitudeQuestions } from '../data/aptitudeQuestions';
 import { aiClient } from '../services/aiClient';
 import ProctoringCamera from '../components/interview/ProctoringCamera';
+import BackButton from '../components/common/BackButton';
 
 export default function CandidateAssessmentPage() {
   const { token } = useParams();
@@ -570,6 +571,10 @@ export default function CandidateAssessmentPage() {
           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
           borderRadius: '24px'
         }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1.25rem' }}>
+            <BackButton to="/" label="Back to Home" />
+          </div>
+
           <div style={{
             width: '84px',
             height: '84px',
@@ -667,6 +672,10 @@ export default function CandidateAssessmentPage() {
           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
           borderRadius: '24px'
         }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1.25rem' }}>
+            <BackButton to="/" label="Back to Home" />
+          </div>
+
           {/* Status Icon */}
           <div style={{
             width: '84px',
@@ -788,7 +797,8 @@ export default function CandidateAssessmentPage() {
           padding: '3.5rem 3rem',
           borderRadius: '24px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+            <BackButton to="/" label="Back to Home" />
             <span className="badge-gold">
               <Sparkles size={14} /> EVAL AI CANDIDATE ASSESSMENT PORTAL
             </span>

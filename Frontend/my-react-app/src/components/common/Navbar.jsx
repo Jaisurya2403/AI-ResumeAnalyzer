@@ -12,7 +12,9 @@ import {
   User, 
   ChevronDown, 
   ShieldCheck, 
-  UserCheck
+  UserCheck,
+  Menu,
+  X
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -24,7 +26,9 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const mobileMenuRef = useRef(null);
 
   const isInterview = location.pathname.startsWith('/interview');
 
@@ -34,6 +38,9 @@ export default function Navbar() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
       }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
+        setMobileMenuOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
@@ -41,9 +48,10 @@ export default function Navbar() {
     };
   }, []);
 
-  // Close dropdown on navigation
+  // Close dropdowns on navigation
   useEffect(() => {
     setDropdownOpen(false);
+    setMobileMenuOpen(false);
   }, [location.pathname]);
 
   const getInitials = (name) => {
@@ -119,8 +127,8 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* Navigation Links & Controls */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+        {/* Desktop Navigation Links & Controls */}
+        <nav className="desktop-nav" style={{ alignItems: 'center', gap: '0.85rem' }}>
           <Link
             to="/"
             style={{
@@ -461,6 +469,220 @@ export default function Navbar() {
             </button>
           )}
         </nav>
+
+        {/* Mobile Corner Menu Button & Floating Dropdown Drawer */}
+        <div className="mobile-nav-toggle" ref={mobileMenuRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: mobileMenuOpen ? 'rgba(212, 175, 55, 0.25)' : 'rgba(212, 175, 55, 0.12)',
+              border: '1px solid rgba(212, 175, 55, 0.45)',
+              color: 'var(--gold-light)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: mobileMenuOpen ? '0 0 15px rgba(212, 175, 55, 0.35)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+            aria-label="Toggle Navigation Menu"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+
+          {/* Mobile Floating Dropdown Menu */}
+          {mobileMenuOpen && (
+            <div
+              className="royal-glass-card solid-border"
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 12px)',
+                right: 0,
+                width: 'min(290px, 85vw)',
+                background: 'rgba(10, 13, 20, 0.98)',
+                backdropFilter: 'blur(32px)',
+                WebkitBackdropFilter: 'blur(32px)',
+                border: '1px solid rgba(212, 175, 55, 0.45)',
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(212, 175, 55, 0.25)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '1.25rem',
+                zIndex: 1002,
+                animation: 'fadeIn 0.15s ease-out'
+              }}
+            >
+              {/* If Authenticated: Show User Info Header */}
+              {isAuthenticated ? (
+                <div style={{ marginBottom: '1rem', paddingBottom: '0.85rem', borderBottom: '1px solid rgba(212, 175, 55, 0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem' }}>
+                    <div style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '50%',
+                      background: isAdmin 
+                        ? 'linear-gradient(135deg, #ffd700 0%, #b8860b 100%)' 
+                        : 'linear-gradient(135deg, #d4af37 0%, #5e4604 100%)',
+                      color: isAdmin ? '#07080c' : '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: '0.95rem',
+                      border: '1.5px solid var(--gold-light)'
+                    }}>
+                      {isAdmin ? '👑' : getInitials(user?.name)}
+                    </div>
+                    <div style={{ overflow: 'hidden' }}>
+                      <div style={{ color: '#fff', fontWeight: 700, fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {user?.name || 'Account'}
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {user?.email}
+                      </div>
+                    </div>
+                  </div>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    padding: '0.2rem 0.55rem',
+                    borderRadius: 'var(--radius-full)',
+                    background: isAdmin ? 'rgba(212, 175, 55, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                    color: isAdmin ? 'var(--gold-light)' : 'var(--accent-emerald)',
+                    border: isAdmin ? '1px solid rgba(212, 175, 55, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)'
+                  }}>
+                    {isAdmin ? <ShieldCheck size={11} /> : <UserCheck size={11} />}
+                    <span>{isAdmin ? 'ADMINISTRATOR' : 'VERIFIED CANDIDATE'}</span>
+                  </span>
+                </div>
+              ) : null}
+
+              {/* Mobile Navigation Links */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <Link
+                  to="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem 0.9rem',
+                    borderRadius: 'var(--radius-md)',
+                    background: location.pathname === '/' ? 'rgba(212, 175, 55, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                    border: location.pathname === '/' ? '1px solid var(--gold-light)' : '1px solid rgba(255, 255, 255, 0.06)',
+                    color: location.pathname === '/' ? '#fff' : 'var(--text-secondary)',
+                    textDecoration: 'none',
+                    fontSize: '0.92rem',
+                    fontWeight: location.pathname === '/' ? 700 : 500
+                  }}
+                >
+                  <FileText size={18} color="var(--gold-light)" />
+                  <span>Resume Analyzer</span>
+                </Link>
+
+                {isAdmin && (
+                  <Link
+                    to="/recruiter/upload"
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 0.9rem',
+                      borderRadius: 'var(--radius-md)',
+                      background: location.pathname === '/recruiter/upload' ? 'rgba(212, 175, 55, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                      border: location.pathname === '/recruiter/upload' ? '1px solid var(--gold-light)' : '1px solid rgba(255, 255, 255, 0.06)',
+                      color: location.pathname === '/recruiter/upload' ? '#fff' : 'var(--text-secondary)',
+                      textDecoration: 'none',
+                      fontSize: '0.92rem',
+                      fontWeight: location.pathname === '/recruiter/upload' ? 700 : 500
+                    }}
+                  >
+                    <Archive size={18} color="var(--gold-light)" />
+                    <span>Batch Candidate ZIP</span>
+                  </Link>
+                )}
+
+                <Link
+                  to="/history"
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem 0.9rem',
+                    borderRadius: 'var(--radius-md)',
+                    background: location.pathname === '/history' ? 'rgba(212, 175, 55, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                    border: location.pathname === '/history' ? '1px solid var(--gold-light)' : '1px solid rgba(255, 255, 255, 0.06)',
+                    color: location.pathname === '/history' ? '#fff' : 'var(--text-secondary)',
+                    textDecoration: 'none',
+                    fontSize: '0.92rem',
+                    fontWeight: location.pathname === '/history' ? 700 : 500
+                  }}
+                >
+                  <History size={18} color="var(--gold-light)" />
+                  <span>{isAdmin ? 'Recruitment Archive' : 'My Candidate Archive'}</span>
+                </Link>
+              </div>
+
+              <div style={{ height: '1px', background: 'rgba(212, 175, 55, 0.15)', margin: '1rem 0' }} />
+
+              {/* Mobile Auth Button (Sign In / Sign Out) */}
+              {isAuthenticated ? (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    padding: '0.7rem',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    color: '#f87171',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <LogOut size={16} />
+                  <span>Sign Out</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    openAuthModal('login');
+                  }}
+                  className="btn-gold"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '0.9rem',
+                    fontWeight: 700
+                  }}
+                >
+                  <LogIn size={16} />
+                  <span>Sign In / Create Account</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

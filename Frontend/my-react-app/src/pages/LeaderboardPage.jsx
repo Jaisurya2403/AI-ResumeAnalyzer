@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Medal, Search, Download, FileText, ExternalLink, RefreshCw, CheckCircle2, Clock, Filter, ArrowUpRight, Sparkles, Award } from 'lucide-react';
+import DownloadConfirmModal from '../components/common/DownloadConfirmModal';
+import BackButton from '../components/common/BackButton';
 
 export default function LeaderboardPage() {
   const [candidates, setCandidates] = useState([]);
@@ -9,6 +11,7 @@ export default function LeaderboardPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [isExporting, setIsExporting] = useState(false);
+  const [confirmDownload, setConfirmDownload] = useState(null);
 
   const fetchLeaderboard = async () => {
     setLoading(true);
@@ -56,6 +59,74 @@ export default function LeaderboardPage() {
     }
   };
 
+  const downloadBlobUrl = async (url, filename) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const bUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = bUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(bUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
+  };
+
+  const triggerExportPdfConfirm = () => {
+    const url = 'http://localhost:8085/api/leaderboard/export-pdf';
+    const fileName = `EVAL_AI_Leaderboard_${new Date().toISOString().slice(0, 10)}.pdf`;
+    setConfirmDownload({
+      onView: () => window.open(url, '_blank'),
+      onConfirm: () => handleExportPdf(),
+      title: "Executive Leaderboard Report",
+      fileName,
+      fileType: "Leaderboard Summary PDF",
+      details: [
+        { label: "Document", value: "Global Leaderboard Dossier" },
+        { label: "Filtered Count", value: `${filtered.length} Candidates` }
+      ]
+    });
+  };
+
+  const triggerCandPdfConfirm = (cand) => {
+    const url = `http://localhost:8085/api/archive/evaluations/${cand.candidateId}/report-pdf`;
+    const fileName = `Assessment_Dossier_${(cand.candidateName || 'Candidate').replace(/\s+/g, '_')}_${(cand.targetRole || 'Role').replace(/\s+/g, '_')}.pdf`;
+    setConfirmDownload({
+      onView: () => window.open(url, '_blank'),
+      onConfirm: () => downloadBlobUrl(url, fileName),
+      title: "Candidate Assessment Dossier",
+      fileName,
+      fileType: "Candidate Evaluation Dossier",
+      details: [
+        { label: "Candidate", value: cand.candidateName || 'Candidate' },
+        { label: "Target Role", value: cand.targetRole || 'N/A' },
+        { label: "Company", value: cand.targetCompany || 'N/A' },
+        { label: "Score", value: `${cand.overallScore || cand.score || 0}%` }
+      ]
+    });
+  };
+
+  const triggerCandResumeConfirm = (cand) => {
+    const url = `http://localhost:8085/api/resumes/${cand.candidateId}/pdf`;
+    const fileName = `Resume_${(cand.candidateName || 'Candidate').replace(/\s+/g, '_')}.pdf`;
+    setConfirmDownload({
+      onView: () => window.open(url, '_blank'),
+      onConfirm: () => downloadBlobUrl(url, fileName),
+      title: "Candidate Original Resume",
+      fileName,
+      fileType: "Original Uploaded Resume PDF",
+      details: [
+        { label: "Candidate", value: cand.candidateName || 'Candidate' },
+        { label: "Document", value: "Applicant Resume Submission" }
+      ]
+    });
+  };
+
   const filtered = candidates
     .filter(c => {
       const matchesSearch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -85,7 +156,8 @@ export default function LeaderboardPage() {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.4rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
+              <BackButton label="Back" />
               <span className="badge-gold">
                 <Trophy size={14} /> EVAL AI • OFFICIAL RECRUITER TALENT LEADERBOARD
               </span>
@@ -110,7 +182,7 @@ export default function LeaderboardPage() {
             </button>
 
             <button
-              onClick={handleExportPdf}
+              onClick={triggerExportPdfConfirm}
               disabled={isExporting}
               className="btn-gold"
               style={{ fontSize: '0.85rem', padding: '0.65rem 1.4rem' }}
@@ -318,30 +390,52 @@ export default function LeaderboardPage() {
                     </td>
 
                     {/* Status */}
-                    <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                    <td style={{ padding: '1rem 1.25rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {cand.status === 'COMPLETED' ? (
-                        <span className="badge-emerald" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                          <CheckCircle2 size={12} /> Completed
+                        <span className="badge-emerald" style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
+                          <CheckCircle2 size={13} /> <span>Completed</span>
                         </span>
                       ) : (
-                        <span className="badge-gold" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                          <Clock size={12} /> Invited
+                        <span className="badge-gold" style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
+                          <Clock size={13} /> <span>Invited</span>
                         </span>
                       )}
                     </td>
 
-                    {/* Resume PDF Link */}
+                    {/* Dossier & Resume Actions */}
                     <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                      <a
-                        href={`http://localhost:8085/api/resumes/${cand.candidateId}/pdf`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-dark"
-                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        <FileText size={13} color="var(--gold-light)" />
-                        <span>View PDF</span>
-                      </a>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                        {cand.status === 'COMPLETED' && (
+                          <>
+                            <Link
+                              to={`/results/${cand.candidateId}/report`}
+                              className="btn-gold"
+                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                            >
+                              <Award size={13} />
+                              <span>Report</span>
+                            </Link>
+                            <button
+                              onClick={() => triggerCandPdfConfirm(cand)}
+                              className="btn-dark"
+                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                              title="Download Assessment Dossier PDF"
+                            >
+                              <FileText size={13} color="var(--gold-light)" />
+                              <span>PDF</span>
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => triggerCandResumeConfirm(cand)}
+                          className="btn-dark"
+                          style={{ padding: '0.35rem 0.55rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '3px', opacity: 0.85, cursor: 'pointer' }}
+                          title="View Original Uploaded Resume PDF"
+                        >
+                          <ExternalLink size={11} color="var(--gold-muted)" />
+                          <span>Resume</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -350,6 +444,20 @@ export default function LeaderboardPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Confirmation Modal */}
+      {confirmDownload && (
+        <DownloadConfirmModal
+          isOpen={Boolean(confirmDownload)}
+          onClose={() => setConfirmDownload(null)}
+          onConfirm={confirmDownload.onConfirm}
+          onView={confirmDownload.onView}
+          title={confirmDownload.title}
+          fileName={confirmDownload.fileName}
+          fileType={confirmDownload.fileType}
+          details={confirmDownload.details}
+        />
+      )}
     </div>
   );
 }

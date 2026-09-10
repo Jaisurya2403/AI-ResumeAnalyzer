@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Upload, Archive, Mail, CheckCircle2, AlertCircle, ArrowRight, Trophy, Sparkles, RefreshCw, FileText, Building2, Briefcase, Calendar, Clock } from 'lucide-react';
+import BackButton from '../components/common/BackButton';
 
 export default function RecruiterUploadPage() {
   const fileInputRef = useRef(null);
@@ -75,6 +76,11 @@ export default function RecruiterUploadPage() {
 
   return (
     <div style={{ width: '100%', padding: '0 0.5rem', paddingTop: '1rem', paddingBottom: '3rem' }}>
+      {/* Top Left Navigation */}
+      <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1.25rem' }}>
+        <BackButton to="/" label="Back to Home" />
+      </div>
+
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
         <div style={{

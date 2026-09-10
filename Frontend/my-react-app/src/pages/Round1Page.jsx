@@ -136,6 +136,29 @@ export default function Round1Page() {
       payload: { round: 'round1', answers: answeredArray }
     });
 
+    // Proactively sync intermediate progress to backend
+    const activeCandId = state.candidateId || sessionStorage.getItem('eval_candidate_id');
+    const activeCandTok = state.candidateToken || sessionStorage.getItem('eval_candidate_token');
+    const activeJwt = localStorage.getItem('evalai_token') || sessionStorage.getItem('evalai_token');
+    if (activeCandId || activeCandTok) {
+      fetch('http://localhost:8085/api/resumes/save-evaluation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(activeJwt ? { 'Authorization': `Bearer ${activeJwt}` } : {})
+        },
+        body: JSON.stringify({
+          candidateId: activeCandId,
+          token: activeCandTok,
+          roundScores: {
+            ...state.roundScores,
+            round1: scorePercent
+          },
+          status: 'IN_PROGRESS'
+        })
+      }).catch(e => console.warn('Intermediate round 1 sync note:', e));
+    }
+
     navigate('/interview/round2');
   };
 

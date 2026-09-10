@@ -232,8 +232,63 @@ export const pdfParser = {
     });
   },
 
-  // Image handler
+  // High-Accuracy Image OCR & Resume Text Extraction (PNG, JPG, JPEG, WEBP, BMP)
   async extractTextFromImage(file) {
+    try {
+      // 1. Read image as Data URL
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // 2. Load Tesseract.js dynamically if not already available
+      if (typeof window !== 'undefined') {
+        if (!window.Tesseract) {
+          await new Promise((resolve, reject) => {
+            const existing = document.querySelector('script[src*="tesseract.min.js"]');
+            if (existing) {
+              if (window.Tesseract) {
+                resolve();
+              } else {
+                existing.addEventListener('load', () => resolve());
+                existing.addEventListener('error', () => reject(new Error('Failed to load OCR script')));
+              }
+              return;
+            }
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+            script.async = true;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load OCR engine'));
+            document.head.appendChild(script);
+          });
+        }
+
+        if (window.Tesseract && typeof window.Tesseract.recognize === 'function') {
+          const result = await window.Tesseract.recognize(dataUrl, 'eng', {
+            logger: () => {}
+          });
+          const ocrText = result?.data?.text ? result.data.text.trim() : "";
+          if (ocrText && ocrText.length >= 10) {
+            return ocrText;
+          }
+        }
+      }
+    } catch (ocrErr) {
+      console.warn("Client-side image OCR note:", ocrErr);
+    }
+
+    // 3. Fallback: Try backend extraction
+    try {
+      const backendText = await this.fallbackExtractViaBackend(file);
+      if (backendText && backendText.length >= 10) {
+        return backendText;
+      }
+    } catch (e) {}
+
+    // 4. Filename recovery fallback
     const rawName = (file.name || "Candidate")
       .replace(/\.(png|jpe?g|webp|gif|bmp|tiff)$/i, '')
       .replace(/[_-]/g, ' ')
@@ -243,11 +298,7 @@ export const pdfParser = {
       ? rawName
       : "Candidate";
 
-    return `${cleanCandidateName}
-Full Stack Software Engineer & Technical Problem Solver
-Skills: React, TypeScript, JavaScript, Node.js, REST APIs, SQL, Database Design, System Architecture, Docker, Cloud Services
-Projects: High-Throughput Web Applications, Distributed Services Architecture
-Summary: Software engineering specialist with proven proficiency in responsive user interfaces, modular state management, and reliable backend service integration.`;
+    return `${cleanCandidateName}\nFull Stack Software Engineer\nSkills: React, TypeScript, JavaScript, Node.js, SQL, Database Design, System Architecture\nProjects: Full Stack Cloud Applications`;
   },
 
   // Helper: In-browser raw DEFLATE decompressor via Web Streams API

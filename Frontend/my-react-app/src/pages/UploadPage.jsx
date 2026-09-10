@@ -16,7 +16,6 @@ export default function UploadPage() {
 
   const processFile = async (file) => {
     if (!file) return;
-
     setIsLoading(true);
     setErrorMessage("");
 

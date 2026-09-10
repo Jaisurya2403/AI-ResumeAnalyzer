@@ -27,6 +27,8 @@ import {
   LogIn
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import DownloadConfirmModal from '../components/common/DownloadConfirmModal';
+import BackButton from '../components/common/BackButton';
 
 export default function HistoryPage() {
   const { user, token, isAuthenticated, isAdmin, isUser, openAuthModal } = useAuth();
@@ -49,6 +51,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [confirmDownload, setConfirmDownload] = useState(null);
 
   useEffect(() => {
     if (isAdmin) {
@@ -251,6 +254,93 @@ export default function HistoryPage() {
     }
   };
 
+  const downloadBlobUrl = async (url, filename) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const bUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = bUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(bUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
+  };
+
+  const triggerExportCohortPdfConfirm = () => {
+    let url;
+    let filename;
+    if (selectedDate && selectedDate !== "ALL") {
+      url = `http://localhost:8085/api/archive/companies/${encodeURIComponent(selectedCompany)}/roles/${encodeURIComponent(selectedRole)}/dates/${encodeURIComponent(selectedDate)}/export-pdf`;
+      filename = `${(selectedCompany || 'Company').replace(/[^a-zA-Z0-9]/g, '_')}_${(selectedRole || 'Role').replace(/[^a-zA-Z0-9]/g, '_')}_${selectedDate}_Leaderboard.pdf`;
+    } else {
+      url = `http://localhost:8085/api/archive/companies/${encodeURIComponent(selectedCompany)}/roles/${encodeURIComponent(selectedRole)}/export-pdf`;
+      filename = `${(selectedCompany || 'Company').replace(/[^a-zA-Z0-9]/g, '_')}_${(selectedRole || 'Role').replace(/[^a-zA-Z0-9]/g, '_')}_Leaderboard.pdf`;
+    }
+
+    setConfirmDownload({
+      onView: () => window.open(url, '_blank'),
+      onConfirm: () => handleExportCohortPdf(),
+      title: "Export Cohort Leaderboard PDF",
+      fileName: filename,
+      fileType: "Batch Cohort Leaderboard PDF",
+      details: [
+        { label: "Company", value: selectedCompany || "N/A" },
+        { label: "Role", value: selectedRole || "N/A" },
+        { label: "Date Batch", value: selectedDateFormatted || selectedDate || "All Time" },
+        { label: "Candidates", value: `${cohortLeaderboard.length} Candidates` }
+      ]
+    });
+  };
+
+  const triggerCandPdfConfirm = (cand) => {
+    const cId = cand.candidateId || cand.id;
+    const cName = cand.candidateName || cand.name || user?.name || 'Candidate';
+    const cRole = cand.targetRole || cand.role || selectedRole || 'Assessment Role';
+    const cComp = cand.targetCompany || cand.company || cand.companyName || selectedCompany || 'Company';
+    const cScore = cand.overallScore || cand.score || 0;
+    const url = `http://localhost:8085/api/archive/evaluations/${cId}/report-pdf`;
+    const filename = `Assessment_Dossier_${cName.replace(/\s+/g, '_')}_${cRole.replace(/\s+/g, '_')}.pdf`;
+
+    setConfirmDownload({
+      onView: () => window.open(url, '_blank'),
+      onConfirm: () => downloadBlobUrl(url, filename),
+      title: "Candidate Assessment Dossier",
+      fileName: filename,
+      fileType: "Official Assessment Dossier (PDF)",
+      details: [
+        { label: "Candidate", value: cName },
+        { label: "Target Role", value: cRole },
+        { label: "Company", value: cComp },
+        { label: "Overall Score", value: `${cScore}%` }
+      ]
+    });
+  };
+
+  const triggerCandResumeConfirm = (cand) => {
+    const cId = cand.candidateId || cand.id;
+    const cName = cand.candidateName || cand.name || 'Candidate';
+    const url = `http://localhost:8085/api/resumes/${cId}/pdf`;
+    const filename = `Resume_${cName.replace(/\s+/g, '_')}.pdf`;
+
+    setConfirmDownload({
+      onView: () => window.open(url, '_blank'),
+      onConfirm: () => downloadBlobUrl(url, filename),
+      title: "Candidate Original Resume",
+      fileName: filename,
+      fileType: "Original Uploaded Resume PDF",
+      details: [
+        { label: "Candidate", value: cName },
+        { label: "Document", value: "Applicant Resume Submission" }
+      ]
+    });
+  };
+
   const goToCompanies = () => {
     setCurrentLevel(1);
     setSelectedCompany(null);
@@ -276,6 +366,11 @@ export default function HistoryPage() {
   if (!isAdmin && isAuthenticated) {
     return (
       <div style={{ width: '100%', minHeight: '80vh', padding: '0 0.5rem' }}>
+        {/* Top Left Navigation */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginBottom: '1.25rem' }}>
+          <BackButton to="/" label="Back to Home" />
+        </div>
+
         {/* Personal Archive Hero */}
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <div style={{
@@ -485,51 +580,75 @@ export default function HistoryPage() {
                             )}
                           </td>
 
-                          <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                          <td style={{ padding: '1rem 1.25rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                             {cStatus === 'COMPLETED' ? (
-                              <span className="badge-emerald" style={{ fontSize: '0.72rem' }}>
-                                <CheckCircle2 size={12} /> Evaluated
+                              <span className="badge-emerald" style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
+                                <CheckCircle2 size={13} /> <span>Evaluated</span>
                               </span>
                             ) : cStatus === 'DISQUALIFIED' ? (
                               <span style={{
-                                fontSize: '0.72rem',
+                                fontSize: '0.75rem',
                                 color: '#f87171',
                                 background: 'rgba(239, 68, 68, 0.15)',
                                 border: '1px solid #ef4444',
-                                padding: '0.25rem 0.6rem',
+                                padding: '0.25rem 0.75rem',
                                 borderRadius: 'var(--radius-full)',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '4px'
+                                gap: '5px',
+                                whiteSpace: 'nowrap'
                               }}>
                                 Terminated
                               </span>
                             ) : (
-                              <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
-                                <Clock size={12} /> In Progress
+                              <span className="badge-gold" style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
+                                <Clock size={13} /> <span>In Progress</span>
                               </span>
                             )}
                           </td>
 
-                          <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                              <a
-                                href={`http://localhost:8085/api/resumes/${cId}/pdf`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn-dark"
+                          <td style={{ padding: '1rem 1.25rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', flexWrap: 'nowrap' }}>
+                              <Link
+                                to={`/results/${cId}/report`}
+                                className="btn-gold"
                                 style={{
-                                  padding: '0.35rem 0.85rem',
+                                  padding: '0.35rem 0.75rem',
                                   fontSize: '0.75rem',
                                   borderRadius: 'var(--radius-sm)',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '5px'
+                                  gap: '5px',
+                                  textDecoration: 'none',
+                                  whiteSpace: 'nowrap'
                                 }}
                               >
+                                <Award size={13} />
+                                <span>View Report</span>
+                              </Link>
+                              <button
+                                onClick={() => triggerCandPdfConfirm({
+                                  candidateId: cId,
+                                  candidateName: cand.candidateName || user?.name || 'Candidate',
+                                  targetRole: cand.targetRole || cand.role || 'Assessment Role',
+                                  targetCompany: cand.companyName || cand.company || 'Company',
+                                  overallScore: cand.overallScore || cand.score || 0
+                                })}
+                                className="btn-dark"
+                                style={{
+                                  padding: '0.35rem 0.65rem',
+                                  fontSize: '0.75rem',
+                                  borderRadius: 'var(--radius-sm)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer'
+                                }}
+                                title="Download Candidate Assessment Dossier PDF"
+                              >
                                 <FileText size={13} color="var(--gold-light)" />
-                                <span>View PDF Report</span>
-                              </a>
+                                <span>PDF</span>
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -540,6 +659,20 @@ export default function HistoryPage() {
             </div>
           );
         })()}
+
+        {/* Confirmation Modal */}
+        {confirmDownload && (
+          <DownloadConfirmModal
+            isOpen={Boolean(confirmDownload)}
+            onClose={() => setConfirmDownload(null)}
+            onConfirm={confirmDownload.onConfirm}
+            onView={confirmDownload.onView}
+            title={confirmDownload.title}
+            fileName={confirmDownload.fileName}
+            fileType={confirmDownload.fileType}
+            details={confirmDownload.details}
+          />
+        )}
       </div>
     );
   }
@@ -547,7 +680,10 @@ export default function HistoryPage() {
   // If unauthenticated guest, require login and DO NOT expose admin / corporate records
   if (!isAuthenticated) {
     return (
-      <div style={{ width: '100%', minHeight: '80vh', padding: '0 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '100%', minHeight: '80vh', padding: '0 0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '100%', maxWidth: '640px', display: 'flex', justifyContent: 'flex-start', marginBottom: '1rem' }}>
+          <BackButton to="/" label="Back to Home" />
+        </div>
         <div className="royal-glass-card solid-border" style={{ maxWidth: '640px', width: '100%', padding: '3.5rem 2.5rem', textAlign: 'center' }}>
           <div style={{
             width: '64px',
@@ -613,47 +749,44 @@ export default function HistoryPage() {
   // Admin Corporate Recruitment Hierarchy (Accessible only when isAuthenticated && isAdmin)
   return (
     <div style={{ width: '100%', minHeight: '80vh', padding: '0 0.5rem' }}>
-      {/* Top Header Navigation: Left-Aligned Back Button + Centered Breadcrumbs */}
+      {/* Top Header Navigation: Responsive Left-Aligned Back Button & Centered Breadcrumbs */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(140px, 1fr) auto minmax(140px, 1fr)',
+        display: 'flex',
         alignItems: 'center',
-        marginBottom: '2.5rem',
-        width: '100%',
-        gap: '1rem'
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.85rem',
+        marginBottom: '2.25rem',
+        width: '100%'
       }}>
-        {/* Left Column: Back Button */}
-        <div style={{ justifySelf: 'start' }}>
-          {currentLevel > 1 && (
-            <button
-              onClick={
-                currentLevel === 2 ? goToCompanies :
-                currentLevel === 3 ? goToRoles :
-                (selectedRole === "ALL" ? goToCompanies : goToDates)
-              }
-              className="btn-dark"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}
-            >
-              <ArrowLeft size={15} />
-              <span>Back</span>
-            </button>
-          )}
-        </div>
+        {/* Back Button */}
+        {currentLevel > 1 ? (
+          <BackButton
+            onClick={
+              currentLevel === 2 ? goToCompanies :
+              currentLevel === 3 ? goToRoles :
+              (selectedRole === "ALL" ? goToCompanies : goToDates)
+            }
+            label="Back"
+          />
+        ) : (
+          <BackButton to="/" label="Back to Home" />
+        )}
 
-        {/* Center Column: Breadcrumb Navigation Pill */}
+        {/* Breadcrumb Navigation Pill */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexWrap: 'wrap',
-          gap: '0.6rem',
-          padding: '0.85rem 1.5rem',
+          gap: '0.5rem',
+          padding: '0.65rem 1.25rem',
           background: 'rgba(14, 18, 28, 0.75)',
           border: '1px solid rgba(212, 175, 55, 0.25)',
           borderRadius: 'var(--radius-full)',
-          fontSize: '0.9rem',
-          maxWidth: 'fit-content',
-          justifySelf: 'center'
+          fontSize: '0.88rem',
+          maxWidth: '100%',
+          margin: currentLevel > 1 ? '0' : '0 auto'
         }}>
           <button
             onClick={goToCompanies}
@@ -739,9 +872,6 @@ export default function HistoryPage() {
             </>
           )}
         </div>
-
-        {/* Right Column: Spacer to balance layout */}
-        <div style={{ justifySelf: 'end' }} />
       </div>
 
       {/* ========================================================================= */}
@@ -1350,7 +1480,7 @@ export default function HistoryPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <button
-                onClick={handleExportCohortPdf}
+                onClick={triggerExportCohortPdfConfirm}
                 disabled={isExportingPdf}
                 className="btn-gold"
                 style={{ padding: '0.75rem 1.6rem' }}
@@ -1523,51 +1653,88 @@ export default function HistoryPage() {
                         )}
                       </td>
 
-                      <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                      <td style={{ padding: '1rem 1.25rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         {cand.status === 'COMPLETED' ? (
-                          <span className="badge-emerald" style={{ fontSize: '0.72rem' }}>
-                            <CheckCircle2 size={12} /> Evaluated
+                          <span className="badge-emerald" style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
+                            <CheckCircle2 size={13} /> <span>Evaluated</span>
                           </span>
                         ) : cand.status === 'DISQUALIFIED' ? (
                           <span style={{
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             color: '#f87171',
                             background: 'rgba(239, 68, 68, 0.15)',
                             border: '1px solid #ef4444',
-                            padding: '0.25rem 0.6rem',
+                            padding: '0.25rem 0.75rem',
                             borderRadius: 'var(--radius-full)',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '4px'
+                            gap: '5px',
+                            whiteSpace: 'nowrap'
                           }}>
                             Terminated (0%)
                           </span>
                         ) : (
-                          <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
-                            <Clock size={12} /> Pending Assessment
+                          <span className="badge-gold" style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
+                            <Clock size={13} /> <span>Pending Assessment</span>
                           </span>
                         )}
                       </td>
 
-                      <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                        <a
-                          href={`http://localhost:8085/api/resumes/${cand.candidateId}/pdf`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn-dark"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '0.4rem 0.8rem',
-                            fontSize: '0.78rem',
-                            borderRadius: 'var(--radius-sm)'
-                          }}
-                        >
-                          <FileText size={13} color="var(--gold-light)" />
-                          <span>View PDF</span>
-                          <ExternalLink size={11} color="var(--gold-muted)" />
-                        </a>
+                      <td style={{ padding: '1rem 1.25rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', flexWrap: 'nowrap' }}>
+                          <Link
+                            to={`/results/${cand.candidateId}/report`}
+                            className="btn-gold"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '0.35rem 0.65rem',
+                              fontSize: '0.75rem',
+                              borderRadius: 'var(--radius-sm)',
+                              textDecoration: 'none',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            <Award size={13} />
+                            <span>Report</span>
+                          </Link>
+                          <button
+                            onClick={() => triggerCandPdfConfirm(cand)}
+                            className="btn-dark"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '0.35rem 0.65rem',
+                              fontSize: '0.75rem',
+                              borderRadius: 'var(--radius-sm)',
+                              cursor: 'pointer'
+                            }}
+                            title="Download Assessment Dossier PDF"
+                          >
+                            <FileText size={13} color="var(--gold-light)" />
+                            <span>PDF</span>
+                          </button>
+                          <button
+                            onClick={() => triggerCandResumeConfirm(cand)}
+                            className="btn-dark"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              padding: '0.35rem 0.55rem',
+                              fontSize: '0.72rem',
+                              borderRadius: 'var(--radius-sm)',
+                              opacity: 0.8,
+                              cursor: 'pointer'
+                            }}
+                            title="View Original Uploaded Resume"
+                          >
+                            <ExternalLink size={11} color="var(--gold-muted)" />
+                            <span>Resume</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1576,6 +1743,20 @@ export default function HistoryPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmDownload && (
+        <DownloadConfirmModal
+          isOpen={Boolean(confirmDownload)}
+          onClose={() => setConfirmDownload(null)}
+          onConfirm={confirmDownload.onConfirm}
+          onView={confirmDownload.onView}
+          title={confirmDownload.title}
+          fileName={confirmDownload.fileName}
+          fileType={confirmDownload.fileType}
+          details={confirmDownload.details}
+        />
       )}
 
     </div>
