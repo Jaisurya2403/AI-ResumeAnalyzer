@@ -59,6 +59,10 @@ public class Candidate {
 
     @Lob
     @Column(columnDefinition = "CLOB")
+    private String finalReportJson; // Full synthesized final report JSON (recommendations, alternate roles, summary)
+
+    @Lob
+    @Column(columnDefinition = "CLOB")
     private String aiFeedback;
 
     private String pdfFileName;

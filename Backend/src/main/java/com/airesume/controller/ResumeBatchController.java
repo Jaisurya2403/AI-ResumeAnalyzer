@@ -125,17 +125,13 @@ public class ResumeBatchController {
                     email = optUser.get().getEmail();
                 }
             }
-            if (email == null || email.isBlank()) {
-                email = "user@evalai.com";
+            if (email != null) {
+                email = email.trim();
             }
-            email = email.trim();
 
             String targetRole = (String) payload.get("targetRole");
             if (targetRole == null || targetRole.isBlank()) {
                 targetRole = (String) payload.get("jobRole");
-            }
-            if (targetRole == null || targetRole.isBlank()) {
-                targetRole = "Fullstack Engineer";
             }
 
             Candidate candidate = null;
@@ -152,28 +148,38 @@ public class ResumeBatchController {
                 candidate.setToken(UUID.randomUUID().toString());
                 candidate.setCreatedAt(java.time.LocalDateTime.now());
                 candidate.setBatchDate(java.time.LocalDate.now());
+                candidate.setEmail(email != null && !email.isBlank() ? email : "candidate@evalai.com");
+            } else if (email != null && !email.isBlank() && !email.equalsIgnoreCase("candidate@evalai.com") && !email.equalsIgnoreCase("user@evalai.com")) {
+                candidate.setEmail(email);
+            } else if (candidate.getEmail() == null || candidate.getEmail().isBlank()) {
+                candidate.setEmail(email != null && !email.isBlank() ? email : "candidate@evalai.com");
             }
-
-            candidate.setEmail(email);
 
             String name = (String) payload.get("name");
             if (name == null || name.isBlank()) {
                 name = (String) payload.get("candidateName");
             }
-            if (name == null || name.isBlank()) {
-                name = "Candidate";
+            if (name != null && !name.isBlank() && !name.equalsIgnoreCase("Candidate")) {
+                candidate.setName(name.trim());
+            } else if (candidate.getName() == null || candidate.getName().isBlank()) {
+                candidate.setName(name != null && !name.isBlank() ? name.trim() : "Candidate");
             }
-            candidate.setName(name);
-            candidate.setTargetRole(targetRole);
+
+            if (targetRole != null && !targetRole.isBlank()) {
+                candidate.setTargetRole(targetRole.trim());
+            } else if (candidate.getTargetRole() == null || candidate.getTargetRole().isBlank()) {
+                candidate.setTargetRole("Fullstack Engineer");
+            }
 
             String companyName = (String) payload.get("companyName");
             if (companyName == null || companyName.isBlank()) {
                 companyName = (String) payload.get("company");
             }
-            if (companyName == null || companyName.isBlank()) {
-                companyName = "Self Analysis";
+            if (companyName != null && !companyName.isBlank()) {
+                candidate.setCompanyName(companyName.trim());
+            } else if (candidate.getCompanyName() == null || candidate.getCompanyName().isBlank()) {
+                candidate.setCompanyName("Standard Corporate Track");
             }
-            candidate.setCompanyName(companyName);
 
             if (payload.get("resumeScore") != null) {
                 try {
@@ -201,13 +207,17 @@ public class ResumeBatchController {
             }
 
             String statusStr = (String) payload.get("status");
-            if (statusStr != null) {
+            if (statusStr != null && !statusStr.isBlank()) {
                 try {
-                    candidate.setStatus(CandidateStatus.valueOf(statusStr.toUpperCase()));
-                    if (candidate.getStatus() == CandidateStatus.COMPLETED) {
+                    CandidateStatus st = CandidateStatus.valueOf(statusStr.toUpperCase().trim());
+                    candidate.setStatus(st);
+                    if (st == CandidateStatus.COMPLETED) {
                         candidate.setCompletedAt(java.time.LocalDateTime.now());
                     }
                 } catch (Exception ignore) {}
+            } else if (candidate.getStatus() == null) {
+                candidate.setStatus(CandidateStatus.COMPLETED);
+                candidate.setCompletedAt(java.time.LocalDateTime.now());
             }
 
             if (payload.get("skills") != null) {
@@ -221,6 +231,30 @@ public class ResumeBatchController {
 
             if (payload.get("summary") != null) {
                 candidate.setAiFeedback(payload.get("summary").toString());
+            }
+
+            if (payload.get("roundScores") != null) {
+                try {
+                    Object rs = payload.get("roundScores");
+                    if (rs instanceof Map || rs instanceof List) {
+                        candidate.setRoundScoresJson(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(rs));
+                    } else {
+                        candidate.setRoundScoresJson(rs.toString());
+                    }
+                } catch (Exception ignore) {}
+            }
+
+            if (payload.get("finalReport") != null) {
+                try {
+                    Object fr = payload.get("finalReport");
+                    if (fr instanceof Map || fr instanceof List) {
+                        candidate.setFinalReportJson(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(fr));
+                    } else {
+                        candidate.setFinalReportJson(fr.toString());
+                    }
+                } catch (Exception ignore) {}
+            } else if (payload.get("finalReportJson") != null) {
+                candidate.setFinalReportJson(payload.get("finalReportJson").toString());
             }
 
             if (payload.get("pdfBase64") != null) {

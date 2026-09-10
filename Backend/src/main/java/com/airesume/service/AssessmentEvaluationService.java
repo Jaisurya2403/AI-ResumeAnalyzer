@@ -36,23 +36,27 @@ public class AssessmentEvaluationService {
         Candidate candidate = optCandidate.get();
 
         // Compute Assessment Score from rounds
-        double r1 = 80.0, r2 = 80.0, r3 = 80.0, r4 = 80.0;
+        double r1 = 0.0, r2 = 0.0, r3 = 0.0, r4 = 0.0;
         if (submission.getRoundScores() != null) {
             Map<String, Integer> scores = submission.getRoundScores();
-            if (scores.containsKey("round1")) r1 = scores.get("round1");
-            if (scores.containsKey("round2")) r2 = scores.get("round2");
-            if (scores.containsKey("round3")) r3 = scores.get("round3");
-            if (scores.containsKey("round4")) r4 = scores.get("round4");
+            if (scores.containsKey("round1") && scores.get("round1") != null) r1 = scores.get("round1");
+            if (scores.containsKey("round2") && scores.get("round2") != null) r2 = scores.get("round2");
+            if (scores.containsKey("round3") && scores.get("round3") != null) r3 = scores.get("round3");
+            if (scores.containsKey("round4") && scores.get("round4") != null) r4 = scores.get("round4");
         }
 
-        boolean isViolation = Boolean.TRUE.equals(submission.getViolation()) || (r1 == 0.0 && r2 == 0.0 && r3 == 0.0 && r4 == 0.0);
+        boolean isViolation = Boolean.TRUE.equals(submission.getViolation());
 
         // Compute Assessment Score from rounds (or 0.0 if disqualified)
         double assessmentScore = isViolation ? 0.0 : (Math.round(((r1 * 0.15) + (r2 * 0.35) + (r3 * 0.30) + (r4 * 0.20)) * 10.0) / 10.0);
         double overallScore = isViolation ? 0.0 : aiScoringService.calculateOverallScore(candidate.getResumeScore(), assessmentScore);
 
         try {
-            candidate.setRoundScoresJson(objectMapper.writeValueAsString(submission));
+            if (submission.getRoundScores() != null) {
+                candidate.setRoundScoresJson(objectMapper.writeValueAsString(submission.getRoundScores()));
+            } else {
+                candidate.setRoundScoresJson(objectMapper.writeValueAsString(submission));
+            }
         } catch (Exception e) {
             candidate.setRoundScoresJson("{}");
         }
