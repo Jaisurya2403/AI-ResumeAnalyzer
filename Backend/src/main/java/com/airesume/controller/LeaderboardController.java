@@ -65,7 +65,7 @@ public class LeaderboardController {
             byte[] pdf = leaderboardPdfService.generateLeaderboardPdf();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("attachment", "EVAL_AI_Leaderboard.pdf");
+            headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"EVAL_AI_Leaderboard.pdf\"");
 
             return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
         } catch (Exception e) {
