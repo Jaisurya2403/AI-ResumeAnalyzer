@@ -136,14 +136,38 @@ export default function Round3Page() {
         }
       });
 
+      // Proactively sync intermediate progress to backend
+      const activeCandId = state.candidateId || sessionStorage.getItem('eval_candidate_id');
+      const activeCandTok = state.candidateToken || sessionStorage.getItem('eval_candidate_token');
+      const activeJwt = localStorage.getItem('evalai_token') || sessionStorage.getItem('evalai_token');
+      if (activeCandId || activeCandTok) {
+        fetch('http://localhost:8085/api/resumes/save-evaluation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(activeJwt ? { 'Authorization': `Bearer ${activeJwt}` } : {})
+          },
+          body: JSON.stringify({
+            candidateId: activeCandId,
+            token: activeCandTok,
+            roundScores: {
+              ...state.roundScores,
+              round3: score
+            },
+            status: 'IN_PROGRESS'
+          })
+        }).catch(e => console.warn('Intermediate round 3 sync note:', e));
+      }
+
       navigate('/interview/round4');
     } catch (err) {
       console.error("Scoring error in Round 3:", err);
       const answersArray = questions.map((_, i) => answers[i] || "");
       const hasAny = answersArray.some(a => a && a.trim().length > 0);
+      const fallbackScore = hasAny ? 50 : 0;
       dispatch({
         type: 'SET_ROUND_SCORE',
-        payload: { round: 'round3', score: hasAny ? 50 : 0 }
+        payload: { round: 'round3', score: fallbackScore }
       });
       navigate('/interview/round4');
     }

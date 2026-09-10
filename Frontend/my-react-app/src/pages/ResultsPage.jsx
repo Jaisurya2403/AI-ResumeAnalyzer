@@ -8,6 +8,7 @@ import SkillRadarChart from '../components/results/SkillRadarChart';
 import ProjectCardList from '../components/results/ProjectCardList';
 import GitHubProfileCard from '../components/results/GitHubProfileCard';
 import LinkBadges from '../components/results/LinkBadges';
+import BackButton from '../components/common/BackButton';
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -57,7 +58,8 @@ export default function ResultsPage() {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.4rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
+              <BackButton to="/" label="Back to Upload" />
               <span className="badge-gold" style={{ fontSize: '0.75rem' }}>
                 <Sparkles size={13} /> AI RESUME PROFILE VERIFIED
               </span>

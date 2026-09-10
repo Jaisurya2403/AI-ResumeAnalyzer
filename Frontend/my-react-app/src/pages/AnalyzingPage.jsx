@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { aiClient } from '../services/aiClient';
 import { githubClient } from '../services/githubClient';
+import BackButton from '../components/common/BackButton';
 
 export default function AnalyzingPage() {
   const { state, dispatch } = useApp();
@@ -134,6 +135,11 @@ export default function AnalyzingPage() {
       textAlign: 'center',
       padding: '2rem 1.5rem'
     }}>
+      {/* Top Left Navigation */}
+      <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1.25rem' }}>
+        <BackButton to="/" label="Cancel Analysis" />
+      </div>
+
       {/* Royal Pulsing Orb */}
       <div style={{ position: 'relative', width: '130px', height: '130px', margin: '0 auto 2.5rem' }}>
         <div style={{
