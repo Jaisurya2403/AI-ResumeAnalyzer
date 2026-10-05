@@ -26,6 +26,7 @@ const defaultState = {
   },
   finalReport: null,
   isAnalyzing: false,
+  mlPredictionData: null,
   apiConfigModalOpen: false,
   malpracticeScore: 0,
   proctoringViolations: [],
@@ -136,6 +137,12 @@ function appReducer(state, action) {
         resultId: "res_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now()
       };
 
+    case 'SET_ML_PREDICTION':
+      return {
+        ...state,
+        mlPredictionData: action.payload
+      };
+
     case 'TOGGLE_API_MODAL':
       return {
         ...state,
@@ -175,11 +182,12 @@ export function AppProvider({ children }) {
 
   // Auto persist to localStorage when final report or profile changes
   useEffect(() => {
-    if (state.resultId && (state.resumeProfile || state.finalReport)) {
+    if (state.resultId && (state.resumeProfile || state.finalReport || state.mlPredictionData)) {
       storageService.saveResult({
         resultId: state.resultId,
         createdAt: state.createdAt || new Date().toISOString(),
         resumeProfile: state.resumeProfile,
+        mlPredictionData: state.mlPredictionData,
         githubData: state.githubData,
         jobRole: state.jobRole,
         roundScores: state.roundScores,
@@ -187,7 +195,7 @@ export function AppProvider({ children }) {
         finalReport: state.finalReport
       });
     }
-  }, [state.resumeProfile, state.githubData, state.jobRole, state.roundScores, state.roundAnswers, state.finalReport, state.resultId]);
+  }, [state.resumeProfile, state.mlPredictionData, state.githubData, state.jobRole, state.roundScores, state.roundAnswers, state.finalReport, state.resultId]);
 
   // Sync current active assessment state to sessionStorage
   useEffect(() => {

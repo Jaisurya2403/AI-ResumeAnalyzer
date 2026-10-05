@@ -54,7 +54,7 @@ export default function Round2Page() {
       setIsLoading(true);
       try {
         const seed = String(state.candidateId || state.resultId || state.userName || Date.now());
-        const mcqs = await aiClient.generateDomainMCQs(skills, jobRole, resumeQuality, projects, seed);
+        const mcqs = await aiClient.generateDomainMCQs(skills, jobRole, resumeQuality, projects, seed, state.mlPredictionData);
         if (isMounted) {
           setQuestions(mcqs || []);
           setIsLoading(false);

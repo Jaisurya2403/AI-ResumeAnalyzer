@@ -270,6 +270,42 @@ public class ResumeBatchController {
                 candidate.setPdfFileName(payload.get("pdfFileName").toString());
             }
 
+            // Save Machine Learning Suitability Prediction fields
+            if (payload.get("mlPrediction") != null) {
+                candidate.setMlPrediction(payload.get("mlPrediction").toString());
+            }
+            if (payload.get("mlSuitabilityScore") != null) {
+                try {
+                    candidate.setMlSuitabilityScore(Double.valueOf(payload.get("mlSuitabilityScore").toString()));
+                } catch (Exception ignore) {}
+            }
+            if (payload.get("mlMatchedSkills") != null) {
+                Object msObj = payload.get("mlMatchedSkills");
+                if (msObj instanceof List) {
+                    candidate.setMlMatchedSkills(String.join(", ", (List<String>) msObj));
+                } else {
+                    candidate.setMlMatchedSkills(msObj.toString());
+                }
+            }
+            if (payload.get("mlMissingSkills") != null) {
+                Object msObj = payload.get("mlMissingSkills");
+                if (msObj instanceof List) {
+                    candidate.setMlMissingSkills(String.join(", ", (List<String>) msObj));
+                } else {
+                    candidate.setMlMissingSkills(msObj.toString());
+                }
+            }
+            if (payload.get("mlFeatureImportances") != null) {
+                try {
+                    candidate.setMlFeatureImportancesJson(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payload.get("mlFeatureImportances")));
+                } catch (Exception ignore) {}
+            }
+            if (payload.get("mlFeatures") != null) {
+                try {
+                    candidate.setMlFeaturesJson(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payload.get("mlFeatures")));
+                } catch (Exception ignore) {}
+            }
+
             candidate = candidateRepository.save(candidate);
 
             try {

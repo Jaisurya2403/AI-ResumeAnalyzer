@@ -1,0 +1,102 @@
+{
+  "model_name": "Resume-to-Job Suitability Classifier",
+  "algorithm": "RandomForestClassifier",
+  "hyperparameters": {
+    "n_estimators": 120,
+    "max_depth": 9,
+    "min_samples_split": 4,
+    "min_samples_leaf": 2,
+    "max_features": "sqrt",
+    "class_weight": "balanced",
+    "random_state": 42
+  },
+  "dataset": {
+    "total_samples": 2000,
+    "train_samples": 1600,
+    "test_samples": 400,
+    "features_count": 11
+  },
+  "features": [
+    "skills_match_count",
+    "skills_match_ratio",
+    "tech_skills_count",
+    "projects_count",
+    "certifications_count",
+    "experience_years",
+    "education_level",
+    "prog_languages_count",
+    "missing_skills_count",
+    "has_internship",
+    "resume_word_count"
+  ],
+  "metrics": {
+    "train_accuracy": 97.75,
+    "test_accuracy": 89.75,
+    "precision": 92.61,
+    "recall": 87.85,
+    "f1_score": 90.17,
+    "confusion_matrix": {
+      "true_negative": 171,
+      "false_positive": 15,
+      "false_negative": 26,
+      "true_positive": 188
+    }
+  },
+  "feature_importances": [
+    {
+      "feature": "skills_match_ratio",
+      "importance": 0.1618,
+      "percentage": 16.18
+    },
+    {
+      "feature": "skills_match_count",
+      "importance": 0.1589,
+      "percentage": 15.89
+    },
+    {
+      "feature": "experience_years",
+      "importance": 0.1506,
+      "percentage": 15.06
+    },
+    {
+      "feature": "missing_skills_count",
+      "importance": 0.1387,
+      "percentage": 13.87
+    },
+    {
+      "feature": "projects_count",
+      "importance": 0.1358,
+      "percentage": 13.58
+    },
+    {
+      "feature": "tech_skills_count",
+      "importance": 0.1148,
+      "percentage": 11.48
+    },
+    {
+      "feature": "resume_word_count",
+      "importance": 0.0452,
+      "percentage": 4.52
+    },
+    {
+      "feature": "has_internship",
+      "importance": 0.0316,
+      "percentage": 3.16
+    },
+    {
+      "feature": "certifications_count",
+      "importance": 0.0303,
+      "percentage": 3.03
+    },
+    {
+      "feature": "prog_languages_count",
+      "importance": 0.0202,
+      "percentage": 2.02
+    },
+    {
+      "feature": "education_level",
+      "importance": 0.0122,
+      "percentage": 1.22
+    }
+  ]
+}

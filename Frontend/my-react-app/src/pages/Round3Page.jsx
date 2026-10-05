@@ -52,7 +52,7 @@ export default function Round3Page() {
       setIsLoading(true);
       try {
         const seed = String(state.candidateId || state.resultId || state.userName || Date.now());
-        const qList = await aiClient.generatePracticalQuestions(domain, jobRole, difficulty, round2Score, projects, skills, seed);
+        const qList = await aiClient.generatePracticalQuestions(domain, jobRole, difficulty, round2Score, projects, skills, seed, state.mlPredictionData);
         if (isMounted) {
           setQuestions(qList || []);
           setIsLoading(false);
