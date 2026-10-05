@@ -578,14 +578,23 @@ Return ONLY JSON:
     return this.fallbackAptitudeQuestions(qualityScore, "", candidateSeed);
   },
 
-  // 3. Round 2 - Domain MCQ Generation (Tested against exact resume stack)
-  async generateDomainMCQs(skills, jobRole, resumeQuality = {}, projects = [], candidateSeed = "") {
+  // 3. Round 2 - Domain MCQ Generation (Tested against exact resume stack and ML suitability context)
+  async generateDomainMCQs(skills, jobRole, resumeQuality = {}, projects = [], candidateSeed = "", mlData = null) {
     const skillsList = Array.isArray(skills) ? skills.map(s => (typeof s === 'string' ? s : s.name)).join(", ") : "React, Node.js, SQL";
     const roleTitle = typeof jobRole === 'object' ? jobRole.title : jobRole;
     const projectNames = Array.isArray(projects) ? projects.map(p => p.name || p).join(", ") : "";
 
+    const matchedSkillsStr = Array.isArray(mlData?.matched_skills) ? mlData.matched_skills.join(", ") : "";
+    const missingSkillsStr = Array.isArray(mlData?.missing_skills) ? mlData.missing_skills.join(", ") : "";
+    const mlContextSnippet = mlData ? `
+Machine Learning Suitability Analysis:
+- ML Prediction: ${mlData.prediction} (Suitability Probability: ${mlData.suitability_score}%)
+- Matched Core Skills: ${matchedSkillsStr || skillsList}
+- Missing Required Skills: ${missingSkillsStr || "None"}
+Please ensure at least 2 questions test deep competency in matched skills and 1-2 questions assess the candidate's adaptability to bridge missing skill areas.` : "";
+
     const prompt = `Generate 7 UNIQUE, deep technical multiple-choice questions specifically targeting candidate's skills (${skillsList}) and projects (${projectNames}) for the role of ${roleTitle}.
-Seed: ${candidateSeed || Date.now()}.
+Seed: ${candidateSeed || Date.now()}.${mlContextSnippet}
 
 Guidelines:
 - Test real-world system behaviors, memory models, latency trade-offs, concurrency, and debugging.
@@ -614,15 +623,20 @@ Return ONLY JSON:
     return this.fallbackDomainMCQs(jobRole, skillsList, candidateSeed);
   },
 
-  // 4. Round 3 - Adaptive Practical Questions (Calibrated to candidate projects)
-  async generatePracticalQuestions(domain, jobRole, difficulty, round2Score, projects = [], skills = [], candidateSeed = "") {
+  // 4. Round 3 - Adaptive Practical Questions (Calibrated to candidate projects & ML suitability context)
+  async generatePracticalQuestions(domain, jobRole, difficulty, round2Score, projects = [], skills = [], candidateSeed = "", mlData = null) {
     const roleTitle = typeof jobRole === 'object' ? jobRole.title : jobRole;
     const projectNames = Array.isArray(projects) ? projects.map(p => p.name || p).join(", ") : "";
     const skillsList = Array.isArray(skills) ? skills.map(s => s.name || s).join(", ") : "";
 
+    const mlExtra = mlData ? `
+Machine Learning Context:
+- Model Suitability Classification: ${mlData.prediction} (${mlData.suitability_score}%)
+- Focus Areas: Evaluate practical architecture with emphasis on ${mlData.matched_skills?.slice(0, 3)?.join(", ") || "core system design"}.` : "";
+
     const prompt = `Generate 3 UNIQUE practical, scenario-based architecture and implementation questions for a candidate applying for ${roleTitle} (${difficulty.toUpperCase()} Track, Round 2 Score: ${round2Score}%).
 Candidate Resume Projects: ${projectNames || "Production web platform"}.
-Candidate Skills: ${skillsList}. Seed: ${candidateSeed || Date.now()}.
+Candidate Skills: ${skillsList}. Seed: ${candidateSeed || Date.now()}.${mlExtra}
 
 Return ONLY JSON:
 {

@@ -161,6 +161,12 @@ public class ArchiveController {
         resp.put("roundScores", c.getRoundScoresJson());
         resp.put("finalReportJson", c.getFinalReportJson());
         resp.put("aiFeedback", summary);
+        resp.put("mlPrediction", c.getMlPrediction());
+        resp.put("mlSuitabilityScore", c.getMlSuitabilityScore());
+        resp.put("mlMatchedSkills", c.getMlMatchedSkills());
+        resp.put("mlMissingSkills", c.getMlMissingSkills());
+        resp.put("mlFeatureImportancesJson", c.getMlFeatureImportancesJson());
+        resp.put("mlFeaturesJson", c.getMlFeaturesJson());
         resp.put("createdAt", c.getCreatedAt());
         resp.put("completedAt", c.getCompletedAt());
         resp.put("token", c.getToken());

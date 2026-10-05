@@ -71,6 +71,27 @@ public class Candidate {
     @Basic(fetch = FetchType.LAZY)
     private byte[] pdfFileData;
 
+    // Machine Learning Prediction Fields (RandomForestClassifier)
+    private String mlPrediction; // "Suitable" or "Not Suitable"
+
+    private Double mlSuitabilityScore; // Model Probability % (0-100)
+
+    @Lob
+    @Column(columnDefinition = "CLOB")
+    private String mlMatchedSkills;
+
+    @Lob
+    @Column(columnDefinition = "CLOB")
+    private String mlMissingSkills;
+
+    @Lob
+    @Column(columnDefinition = "CLOB")
+    private String mlFeatureImportancesJson;
+
+    @Lob
+    @Column(columnDefinition = "CLOB")
+    private String mlFeaturesJson;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private CandidateStatus status = CandidateStatus.INVITED;

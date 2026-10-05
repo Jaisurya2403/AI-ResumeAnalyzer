@@ -8,7 +8,9 @@ import SkillRadarChart from '../components/results/SkillRadarChart';
 import ProjectCardList from '../components/results/ProjectCardList';
 import GitHubProfileCard from '../components/results/GitHubProfileCard';
 import LinkBadges from '../components/results/LinkBadges';
+import MlSuitabilityCard from '../components/results/MlSuitabilityCard';
 import BackButton from '../components/common/BackButton';
+import { mlClient } from '../services/mlClient';
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -25,6 +27,17 @@ export default function ResultsPage() {
       }
     }
   }, [id, state.resumeProfile]);
+
+  // Ensure ML Prediction is available if not already loaded
+  useEffect(() => {
+    if (!state.mlPredictionData && state.resumeProfile) {
+      mlClient.predictSuitability(state.resumeProfile, state.jobRole, state.rawResumeText).then(mlRes => {
+        if (mlRes) {
+          dispatch({ type: 'SET_ML_PREDICTION', payload: mlRes });
+        }
+      });
+    }
+  }, [state.mlPredictionData, state.resumeProfile, state.jobRole]);
 
   const profile = state.resumeProfile || {
     candidateName: "Candidate",
@@ -92,6 +105,9 @@ export default function ResultsPage() {
           </div>
         </div>
       </div>
+
+      {/* Supervised Machine Learning Suitability Section */}
+      <MlSuitabilityCard mlData={state.mlPredictionData} />
 
       {/* Grid: Charts & GitHub */}
       <div className="grid-2" style={{ marginBottom: '2rem' }}>

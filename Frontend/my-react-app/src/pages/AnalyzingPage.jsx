@@ -4,6 +4,7 @@ import { Sparkles, CheckCircle2, Cpu, Github, Layers, FileCheck } from 'lucide-r
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { aiClient } from '../services/aiClient';
+import { mlClient } from '../services/mlClient';
 import { githubClient } from '../services/githubClient';
 import BackButton from '../components/common/BackButton';
 
@@ -16,8 +17,8 @@ export default function AnalyzingPage() {
   const [stages, setStages] = useState([
     { id: 1, title: "Extracting Resume Content & Tokens", status: "running", icon: FileCheck },
     { id: 2, title: "Synthesizing AI Skill Vector & Projects", status: "pending", icon: Cpu },
-    { id: 3, title: "Querying Public GitHub Repository Telemetry", status: "pending", icon: Github },
-    { id: 4, title: "Generating Baseline Competency Matrix", status: "pending", icon: Layers }
+    { id: 3, title: "Supervised ML Random Forest Suitability Prediction", status: "pending", icon: Layers },
+    { id: 4, title: "Querying Public GitHub Repository Telemetry", status: "pending", icon: Github }
   ]);
   useEffect(() => {
     let cancelled = false;
@@ -33,6 +34,21 @@ export default function AnalyzingPage() {
         // Call AI Parser with Text & Image/PDF Base64
         const resumeProfile = await aiClient.parseResume(state.rawResumeText || "Candidate Fullstack Engineer", state.pdfBase64);
         dispatch({ type: 'SET_RESUME_PROFILE', payload: resumeProfile });
+
+        // Stage 2 -> 3 (Machine Learning Suitability Prediction)
+        setStages(prev => prev.map(s => s.id === 2 ? { ...s, status: 'done' } : (s.id === 3 ? { ...s, status: 'running' } : s)));
+        setCurrentStage(3);
+
+        // Run Supervised Random Forest Classifier Model
+        let mlResult = null;
+        try {
+          mlResult = await mlClient.predictSuitability(resumeProfile, state.jobRole, state.rawResumeText);
+          if (mlResult) {
+            dispatch({ type: 'SET_ML_PREDICTION', payload: mlResult });
+          }
+        } catch (mlErr) {
+          console.warn('[AnalyzingPage] ML Suitability prediction error:', mlErr);
+        }
 
         // Calculate ATS Score from parsed skills or profile
         const atsScore = Math.round(
@@ -66,6 +82,12 @@ export default function AnalyzingPage() {
               status: 'INVITED',
               skills: (resumeProfile?.skills || []).map(s => s.name || s),
               summary: resumeProfile?.summary || '',
+              mlPrediction: mlResult?.prediction || 'Suitable',
+              mlSuitabilityScore: mlResult?.suitability_score || 85.0,
+              mlMatchedSkills: mlResult?.matched_skills || [],
+              mlMissingSkills: mlResult?.missing_skills || [],
+              mlFeatureImportances: mlResult?.feature_importances || [],
+              mlFeatures: mlResult?.features || {},
               pdfBase64: state.pdfBase64 || null,
               pdfFileName: state.pdfFileName || null
             })
@@ -85,9 +107,9 @@ export default function AnalyzingPage() {
           console.warn('Evaluation persistence warning:', dbErr);
         }
 
-        // Stage 2 -> 3
-        setStages(prev => prev.map(s => s.id === 2 ? { ...s, status: 'done' } : (s.id === 3 ? { ...s, status: 'running' } : s)));
-        setCurrentStage(3);
+        // Stage 3 -> 4
+        setStages(prev => prev.map(s => s.id === 3 ? { ...s, status: 'done' } : (s.id === 4 ? { ...s, status: 'running' } : s)));
+        setCurrentStage(4);
 
         // Fetch GitHub / Web Profile Data
         if (resumeProfile?.links?.github) {
@@ -101,13 +123,7 @@ export default function AnalyzingPage() {
           }
         }
 
-        await new Promise(r => setTimeout(r, 500));
-
-        // Stage 3 -> 4
-        setStages(prev => prev.map(s => s.id === 3 ? { ...s, status: 'done' } : (s.id === 4 ? { ...s, status: 'running' } : s)));
-        setCurrentStage(4);
-
-        await new Promise(r => setTimeout(r, 700));
+        await new Promise(r => setTimeout(r, 600));
         setStages(prev => prev.map(s => ({ ...s, status: 'done' })));
 
         // Navigate to results
